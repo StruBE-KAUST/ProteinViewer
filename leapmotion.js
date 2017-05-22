@@ -17,10 +17,11 @@
   var rpinching = false;
   var rswiping = false;
 
-  var newgrab = true;
+  var newrgrab = true;
+  var newlgrab = true;
 
   // to use HMD mode:
-  controllerOptions.optimizeHMD = true;
+  controllerOptions.optimizeHMD = false;
 
   var rPos = {x:0, y:0, z:0}
   var lPos = {x:0, y:0, z:0}
@@ -44,9 +45,11 @@
             z: handPos[2]
           }
 
-          if(hand.grabStrength > 0.50) {
+          if(hand.grabStrength > 0.50 && newlgrab == true) {
             lgrabbing = true;
-          } else lgrabbing = false;
+          } else if(hand.grabStrength < 0.50) {
+            lgrabbing = false;
+          }
 
           if(hand.pinchStrength > 0.50) {
             lpinching = true;
@@ -67,7 +70,7 @@
             z: handPos[2]
           }
 
-          if(hand.grabStrength > 0.50 && newgrab == true) {
+          if(hand.grabStrength > 0.50 && newrgrab == true) {
             rgrabbing = true;
           } else if(hand.grabStrength < 0.50){
             rgrabbing = false;
@@ -102,9 +105,11 @@
 
   AFRAME.registerComponent('l-events', {
     tick: (function(){
-      if(lgrabbing == true){
+      if(lgrabbing == true && newlgrab == true){
+        newlgrab = false;
         this.el.emit('gripclose', {});
-      } else {
+      } else if (lgrabbing == false) {
+        newlgrab = true;
         this.el.emit('gripopen', {});
       }
 
@@ -124,11 +129,11 @@
 
   AFRAME.registerComponent('r-events', {
     tick: (function(){
-      if(rgrabbing == true && newgrab == true){
-        newgrab = false;
+      if(rgrabbing == true && newrgrab == true){
+        newrgrab = false;
         this.el.emit('gripclose', {});
       } else if (rgrabbing == false) {
-        newgrab = true;
+        newrgrab = true;
         this.el.emit('gripopen', {});
       }
 
@@ -166,8 +171,14 @@
 
   AFRAME.registerComponent('l-leap-position', {
     schema: {
-      default: lPos
+      pos: {
+        type: 'vec3',
+        default: lPos
+      }
     },
+    tick: function(){
+      this.data.pos = lPos;
+    }
   })
 
   // AFRAME.registerComponent('l-leap-rotation', {
