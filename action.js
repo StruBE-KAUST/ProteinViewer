@@ -119,7 +119,7 @@ AFRAME.registerComponent('laction', {
     if(this.pinching == true && this.grabbing == false){
       var rotation;
       if (!hitEl) { return; }
-      this.updateDelta();
+      this.updateRotation();
       rotation = hitEl.getAttribute('rotation');
       var a = this.newRotation.x;
       var b = this.newRotation.y;
@@ -144,14 +144,32 @@ AFRAME.registerComponent('laction', {
     if(!previousPosition){
       previousPosition = currentPosition;
     } else previousPosition = this.previousPosition;
+
+    var cam = this.el.sceneEl.querySelector("a-entity");
+    var rot = cam.getAttribute('rotation');
+
+    var rotX = rot.x*0.0174533;
+    var rotY = rot.y*0.0174533;
+
+    var delX;
+    var delY;
+    var delZ;
+
+    this.prevRot = rot;
+    delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
+    delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
+    delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
+
     var deltaPosition = {
-      x: (currentPosition.x - previousPosition.x)*0.01,
-      y: (currentPosition.y - previousPosition.y)*0.01,
-      z: (currentPosition.z - previousPosition.z)*0.01
+      x: delX*0.01,
+      y: delY*0.01,
+      z: delZ*0.01
     };
     this.previousPosition = currentPosition;
     this.deltaPosition = deltaPosition;
+  },
 
+  updateRotation: function () {
     // similar to the position, the rotation had to be manually tracked
     var rotation = this.el.getAttribute('l-leap');
     var currentRotation;
@@ -189,6 +207,8 @@ AFRAME.registerComponent('raction', {
     this.onPinchOpen = this.onPinchOpen.bind(this);
     // this.onSwipeStart = this.onSwipeStart.bind(this);
     // this.onSwipeEnd = this.onSwipeEnd.bind(this);
+
+    this.prevRot = {x:0, y:0, z:0};
   },
 
   play: function () {
@@ -267,6 +287,7 @@ AFRAME.registerComponent('raction', {
 
   tick: function () {
     var hitEl = this.hitEl;
+
     if(this.grabbing == true){
       var position;
       if (!hitEl) { return; }
@@ -282,7 +303,7 @@ AFRAME.registerComponent('raction', {
     if(this.pinching == true && this.grabbing == false){
       var rotation;
       if (!hitEl) { return; }
-      this.updateDelta();
+      this.updateRotation();
       rotation = hitEl.getAttribute('rotation');
       var a = this.newRotation.x;
       var b = this.newRotation.y;
@@ -307,14 +328,32 @@ AFRAME.registerComponent('raction', {
     if(!previousPosition){
       previousPosition = currentPosition;
     } else previousPosition = this.previousPosition;
+
+    var cam = this.el.sceneEl.querySelector("a-entity");
+    var rot = cam.getAttribute('rotation');
+
+    var rotX = rot.x*0.0174533;
+    var rotY = rot.y*0.0174533;
+
+    var delX;
+    var delY;
+    var delZ;
+
+    this.prevRot = rot;
+    delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
+    delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
+    delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
+
     var deltaPosition = {
-      x: (currentPosition.x - previousPosition.x)*0.01,
-      y: (currentPosition.y - previousPosition.y)*0.01,
-      z: (currentPosition.z - previousPosition.z)*0.01
+      x: delX*0.01,
+      y: delY*0.01,
+      z: delZ*0.01
     };
     this.previousPosition = currentPosition;
     this.deltaPosition = deltaPosition;
+  },
 
+  updateRotation: function () {
     // similar to the position, the rotation had to be manually tracked
     var rotation = this.el.getAttribute('r-leap');
     var currentRotation;
