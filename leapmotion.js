@@ -5,32 +5,14 @@
   var paused = false;
 
   // Setup Leap loop with frame callback function
-  var controllerOptions = {
-    // enableGestures: true // find a way to make use of gestures!
-  };
+  var controllerOptions = {};
 
-  var lgrabbing = false;
-  var lpinching = false;
-  var lswiping = false;
-
-  var rgrabbing = false;
-  var rpinching = false;
-  var rswiping = false;
-
-  var newrgrab = true;
-  var newlgrab = true;
-
-  var newrpinch = true;
-  var newlpinch = true;
+  var lgrabbing, lpinching, lswiping, rgrabbing, rpinching, rswiping = false;
+  var newrgrab, newrpinch, newrswipe, newlgrab, newlpinch, newlswipe = true;
+  var rPos, lPos, rRot, lRot = {x:0, y:0, z:0}
 
   // to use HMD mode, set to true:
   controllerOptions.optimizeHMD = false;
-
-  var rPos = {x:0, y:0, z:0}
-  var lPos = {x:0, y:0, z:0}
-
-  var rRot = {x:0, y:0, z:0}
-  var lRot = {x:0, y:0, z:0}
 
   Leap.loop(controllerOptions, function(frame) {
     if (paused) {
@@ -42,27 +24,17 @@
         var hand = frame.hands[i];
         var handPos = hand.palmPosition;
 
+        // if the hand is a left hand: 
         if(hand.type == 'left'){
-
-          lPos = {
-            x: handPos[0],
-            y: handPos[1],
-            z: handPos[2]
-          }
+          lPos = { x: handPos[0], y: handPos[1], z: handPos[2] };
 
           if(!previousFrame){}
             else {
               var a = hand.rotationAngle(previousFrame, [1, 0, 0]);
               var b = hand.rotationAngle(previousFrame, [0, 1, 0]);
               var c = hand.rotationAngle(previousFrame, [0, 0, 1]);
-
-              lRot = {
-                x: a,
-                y: b,
-                z: c
-              }
+              lRot = { x: a, y: b, z: c };
             }
-
 
           if(hand.grabStrength > 0.50 && newlgrab == true) {
             lgrabbing = true;
@@ -83,25 +55,19 @@
             lswiping = true;
             speed = 0;
           } else lswiping = false;
-        } else if(hand.type == 'right') {
+        } 
 
-          rPos = {
-            x: handPos[0],
-            y: handPos[1],
-            z: handPos[2]
-          }
+        // same as above, but for the right hand
+        else if(hand.type == 'right') {
+
+          rPos = { x: handPos[0], y: handPos[1], z: handPos[2] };
 
           if(!previousFrame){}
             else {
               var a = hand.rotationAngle(previousFrame, [1, 0, 0]);
               var b = hand.rotationAngle(previousFrame, [0, 1, 0]);
               var c = hand.rotationAngle(previousFrame, [0, 0, 1]);
-
-              rRot = {
-                x: a,
-                y: b,
-                z: c
-              }
+              rRot = { x: a, y: b, z: c };
             }
 
           if(hand.grabStrength > 0.50 && newrgrab == true) {
@@ -126,12 +92,7 @@
         }
       }
     } else {
-      rswiping = false;
-      rgrabbing = false;
-      rpinching = false;
-      lswiping = false;
-      lgrabbing = false;
-      lpinching = false;
+      rswiping, rgrabbing, rpinching, lswiping, lgrabbing, lpinching = false;
     }
 
   // Store frame for motion functions
@@ -157,11 +118,13 @@
         this.el.emit('pinchopen', {});
       }
 
-      // if(lswiping == true){
-      //   this.el.emit('swipestart', {el: this});
-      // } else {
-      //   this.el.emit('swipeend', {el: this});
-      // }
+      if(lswiping == true && newlswipe == true){
+        newlswipe = false;
+        this.el.emit('swipestart', {});
+      } else if (lswiping == false) {
+        newlswipe = true;
+        this.el.emit('swipeend', {});
+      }
     })
   })
 
@@ -183,11 +146,13 @@
         this.el.emit('pinchopen', {});
       }
 
-      // if(rswiping == true){
-      //   this.el.emit('swipestart', {el: this});
-      // } else {
-      //   this.el.emit('swipeend', {el: this});
-      // }
+      if(rswiping == true && newrswipe == true){
+        newrswipe = false;
+        this.el.emit('swipestart', {});
+      } else if (rswiping == false) {
+        newrswipe = true;
+        this.el.emit('swipeend', {});
+      }
     })
   })
 

@@ -23,6 +23,8 @@ AFRAME.registerComponent('laction', {
     this.onPinchOpen = this.onPinchOpen.bind(this);
     // this.onSwipeStart = this.onSwipeStart.bind(this);
     // this.onSwipeEnd = this.onSwipeEnd.bind(this);
+
+    this.prevRot = {x:0, y:0, z:0};
   },
 
   play: function () {
@@ -80,15 +82,10 @@ AFRAME.registerComponent('laction', {
 
   onSwipeStart: function (evt) {
     this.swiping = true;
-    delete this.previousPosition;
   },
 
   onSwipeEnd: function (evt) {
-    var hitEl = this.hitEl;
     this.swiping = false;
-    if (!hitEl) { return; }
-    hitEl.removeState(this.SWIPED_STATE);
-    this.hitEl = undefined;
   },
 
   onHit: function (evt) {
@@ -103,44 +100,17 @@ AFRAME.registerComponent('laction', {
   },
 
   tick: function () {
-    var hitEl = this.hitEl;
-    if(this.grabbing == true){
-      var position;
-      if (!hitEl) { return; }
-      this.updateDelta();
-      position = hitEl.getAttribute('position');
-      hitEl.setAttribute('position', {
-        x: position.x + this.deltaPosition.x,
-        y: position.y + this.deltaPosition.y,
-        z: position.z + this.deltaPosition.z
-      });
-    }
-
-    if(this.pinching == true && this.grabbing == false){
-      var rotation;
-      if (!hitEl) { return; }
-      this.updateRotation();
-      rotation = hitEl.getAttribute('rotation');
-      var a = this.newRotation.x;
-      var b = this.newRotation.y;
-      var c = this.newRotation.z;
-      hitEl.setAttribute('rotation', {
-        x: rotation.x - a*57.2958*0.5,
-        y: rotation.y - b*57.2958*0.5,
-        z: rotation.z - c*57.2958*0.5
-      });
-    }
+    this.grab();
+    this.pinch();
   },
 
   updateDelta: function () {
     // the position was not changing with the position of the hand, so I defined another
     // attribute to keep track of the position of the leap motion    
     var position = this.el.getAttribute('l-leap');
-    var currentPosition;
-    if(!position){
-      currentPosition = {x:0, y:0, z:0};
-    } else currentPosition = position.pos;
+    var currentPosition = position.pos;
     var previousPosition = this.previousPosition;
+
     if(!previousPosition){
       previousPosition = currentPosition;
     } else previousPosition = this.previousPosition;
@@ -151,9 +121,7 @@ AFRAME.registerComponent('laction', {
     var rotX = rot.x*0.0174533;
     var rotY = rot.y*0.0174533;
 
-    var delX;
-    var delY;
-    var delZ;
+    var delX, delY, delZ;
 
     this.prevRot = rot;
     delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
@@ -177,6 +145,39 @@ AFRAME.registerComponent('laction', {
       currentRotation = {x:0, y:0, z:0};
     } else currentRotation = rotation.rot;
     this.newRotation = currentRotation;
+  },
+
+  grab: function() {
+    var hitEl = this.hitEl;
+    if(this.grabbing == true){
+      var position;
+      if (!hitEl) { return; }
+      this.updateDelta();
+      position = hitEl.getAttribute('position');
+      hitEl.setAttribute('position', {
+        x: position.x + this.deltaPosition.x,
+        y: position.y + this.deltaPosition.y,
+        z: position.z + this.deltaPosition.z
+      });
+    }
+  },
+
+  pinch: function() {
+    var hitEl = this.hitEl;
+    if(this.pinching == true && this.grabbing == false){
+      var rotation;
+      if (!hitEl) { return; }
+      this.updateRotation();
+      rotation = hitEl.getAttribute('rotation');
+      var a = this.newRotation.x;
+      var b = this.newRotation.y;
+      var c = this.newRotation.z;
+      hitEl.setAttribute('rotation', {
+        x: rotation.x - a*57.2958*0.5,
+        y: rotation.y - b*57.2958*0.5,
+        z: rotation.z - c*57.2958*0.5
+      });
+    }
   }
 });
 
@@ -263,15 +264,10 @@ AFRAME.registerComponent('raction', {
 
   onSwipeStart: function (evt) {
     this.swiping = true;
-    delete this.previousPosition;
   },
 
   onSwipeEnd: function (evt) {
-    var hitEl = this.hitEl;
     this.swiping = false;
-    if (!hitEl) { return; }
-    hitEl.removeState(this.SWIPED_STATE);
-    this.hitEl = undefined;
   },
 
   onHit: function (evt) {
@@ -286,45 +282,17 @@ AFRAME.registerComponent('raction', {
   },
 
   tick: function () {
-    var hitEl = this.hitEl;
-
-    if(this.grabbing == true){
-      var position;
-      if (!hitEl) { return; }
-      this.updateDelta();
-      position = hitEl.getAttribute('position');
-      hitEl.setAttribute('position', {
-        x: position.x + this.deltaPosition.x,
-        y: position.y + this.deltaPosition.y,
-        z: position.z + this.deltaPosition.z
-      });
-    }
-
-    if(this.pinching == true && this.grabbing == false){
-      var rotation;
-      if (!hitEl) { return; }
-      this.updateRotation();
-      rotation = hitEl.getAttribute('rotation');
-      var a = this.newRotation.x;
-      var b = this.newRotation.y;
-      var c = this.newRotation.z;
-      hitEl.setAttribute('rotation', {
-        x: rotation.x - a*57.2958,
-        y: rotation.y - b*57.2958,
-        z: rotation.z - c*57.2958
-      });
-    }
+    this.grab();
+    this.pinch();
   },
 
   updateDelta: function () {
     // the position was not changing with the position of the hand, so I defined another
     // attribute to keep track of the position of the leap motion    
     var position = this.el.getAttribute('r-leap');
-    var currentPosition;
-    if(!position){
-      currentPosition = {x:0, y:0, z:0};
-    } else currentPosition = position.pos;
+    var currentPosition = position.pos;
     var previousPosition = this.previousPosition;
+
     if(!previousPosition){
       previousPosition = currentPosition;
     } else previousPosition = this.previousPosition;
@@ -335,9 +303,7 @@ AFRAME.registerComponent('raction', {
     var rotX = rot.x*0.0174533;
     var rotY = rot.y*0.0174533;
 
-    var delX;
-    var delY;
-    var delZ;
+    var delX, delY, delZ;
 
     this.prevRot = rot;
     delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
@@ -361,5 +327,38 @@ AFRAME.registerComponent('raction', {
       currentRotation = {x:0, y:0, z:0};
     } else currentRotation = rotation.rot;
     this.newRotation = currentRotation;
+  },
+
+  grab: function() {
+    var hitEl = this.hitEl;
+    if(this.grabbing == true){
+      var position;
+      if (!hitEl) { return; }
+      this.updateDelta();
+      position = hitEl.getAttribute('position');
+      hitEl.setAttribute('position', {
+        x: position.x + this.deltaPosition.x,
+        y: position.y + this.deltaPosition.y,
+        z: position.z + this.deltaPosition.z
+      });
+    }
+  },
+
+  pinch: function() {
+    var hitEl = this.hitEl;
+    if(this.pinching == true && this.grabbing == false){
+      var rotation;
+      if (!hitEl) { return; }
+      this.updateRotation();
+      rotation = hitEl.getAttribute('rotation');
+      var a = this.newRotation.x;
+      var b = this.newRotation.y;
+      var c = this.newRotation.z;
+      hitEl.setAttribute('rotation', {
+        x: rotation.x - a*57.2958,
+        y: rotation.y - b*57.2958,
+        z: rotation.z - c*57.2958
+      });
+    }
   }
 });
