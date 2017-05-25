@@ -16,8 +16,8 @@
 
   <!-- creates assets for the .obj file and matching .mtl -->
     <a-assets>
-      <a-asset-item id="model1" src="models/VMD/ribbon-test.obj"></a-asset-item>
-      <a-asset-item id="mat1" src="models/VMD/ribbon-test.mtl"></a-asset-item>
+      <a-asset-item id="model" src="models/VMD/ribbon-test.obj"></a-asset-item>
+      <a-asset-item id="mat" src="models/VMD/ribbon-test.mtl"></a-asset-item>
     </a-assets>
 
     <!-- Leap Motion hands! -->
@@ -27,7 +27,7 @@
     </a-entity>
 
     <!-- loads the protein models -->
-    <a-entity class="model" obj-model="obj: #model1; mtl: #mat1" cursor-listener position="0 0 0" scale="10 10 10"></a-entity>
+    <a-entity class="model" obj-model="obj: #model; mtl: #mat" cursor-listener position="0 0 0" scale="10 10 10"></a-entity>
 
     <!-- Skybox (background) -->
     <a-sky src="images/sky box.jpg"></a-sky>

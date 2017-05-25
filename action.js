@@ -19,8 +19,6 @@ AFRAME.registerComponent('action', {
     // Adding more events:
     this.onPinchClose = this.onPinchClose.bind(this);
     this.onPinchOpen = this.onPinchOpen.bind(this);
-    // this.onSwipeStart = this.onSwipeStart.bind(this);
-    // this.onSwipeEnd = this.onSwipeEnd.bind(this);
 
     this.prevRot = {x:0, y:0, z:0};
   },
@@ -32,22 +30,7 @@ AFRAME.registerComponent('action', {
     el.addEventListener('gripopen', this.onGripOpen);
     el.addEventListener('pinchclose', this.onPinchClose);
     el.addEventListener('pinchopen', this.onPinchOpen);
-    el.addEventListener('swipestart', this.onSwipeStart);
-    el.addEventListener('swipeend', this.onSwipeEnd);
   },
-
-  // Don't have pausing functionality yet. Kept commented in case we want to add it later
-
-  // pause: function () {
-  //   var el = this.el;
-  //   el.removeEventListener('hit', this.onHit);
-  //   el.removeEventListener('gripclose', this.onGripClose);
-  //   el.removeEventListener('gripopen', this.onGripOpen);
-  //   el.removeEventListener('pinchclose', this.onPinchClose);
-  //   el.removeEventListener('pinchopen', this.onPinchOpen);
-  //   el.removeEventListener('swipestart', this.onSwipeStart);
-  //   el.removeEventListener('swipeend', this.onSwipeEnd);
-  // },
 
   onGripClose: function (evt) {
     this.grabbing = true;
@@ -66,6 +49,7 @@ AFRAME.registerComponent('action', {
   onPinchClose: function (evt) {
     this.pinching = true;
     delete this.newRotation;
+    delete this.previousPosition;
   },
 
   onPinchOpen: function (evt) {
@@ -74,27 +58,31 @@ AFRAME.registerComponent('action', {
     if (!hitEl) { return; }
     hitEl.removeState(this.PINCHED_STATE);
     if(this.grabbing == false) this.hitEl = undefined;
-    delete this.newRotation
-  },
-
-
-  onSwipeStart: function (evt) {
-    this.swiping = true;
-  },
-
-  onSwipeEnd: function (evt) {
-    this.swiping = false;
+    delete this.newRotation;
+    delete this.previousPosition;
   },
 
   onHit: function (evt) {
     var hitEl = evt.detail.el;
-    // If the element is already grabbed (it could be grabbed by another controller).
-    // If the hand is not grabbing the element does not stick.
-    // If we're already grabbing something you can't grab again.
-    if (!hitEl || hitEl.is(this.GRABBED_STATE) || hitEl.is(this.PINCHED_STATE) || !this.grabbing && !this.pinching || this.hitEl) { return; }
-    if(this.grabbing == true) hitEl.addState(this.GRABBED_STATE);
-    if(this.pinching == true) hitEl.addState(this.PINCHED_STATE);
-    this.hitEl = hitEl;
+
+    var hand = this.el.getAttribute('leap-hand').hand;
+    var str;
+    if(hand == "left"){
+      if(this.grabbing == true) {
+        if (!hitEl || hitEl.is(this.GRABBED_STATE) || hitEl.is(this.PINCHED_STATE) || !this.grabbing && !this.pinching || this.hitEl) { return; }
+        hitEl.addState(this.GRABBED_STATE);
+        this.hitEl = hitEl;
+      } else if(this.pinching == true) {
+        if (!this.grabbing && !this.pinching) { return; }
+        if (!hitEl){}
+          else if ( hitEl.is(this.GRABBED_STATE) || hitEl.is(this.PINCHED_STATE)) { return; }
+      }
+    } else {
+      if (!hitEl || hitEl.is(this.GRABBED_STATE) || hitEl.is(this.PINCHED_STATE) || !this.grabbing && !this.pinching || this.hitEl) { return; }
+      if(this.grabbing == true) hitEl.addState(this.GRABBED_STATE);
+      if(this.pinching == true) hitEl.addState(this.PINCHED_STATE);
+      this.hitEl = hitEl;
+    }
   },
 
   tick: function () {
@@ -107,7 +95,6 @@ AFRAME.registerComponent('action', {
     // attribute to keep track of the position of the leap motion    
     var hand = this.el.getAttribute('leap-hand').hand;
     var str;
-
     if(hand == "left"){
       str = 'l-leap';
     } else str = 'r-leap';
@@ -133,11 +120,7 @@ AFRAME.registerComponent('action', {
     delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
     delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
 
-    var deltaPosition = {
-      x: delX*0.01,
-      y: delY*0.01,
-      z: delZ*0.01
-    };
+    var deltaPosition = { x: delX*0.01, y: delY*0.01, z: delZ*0.01 };
     this.previousPosition = currentPosition;
     this.deltaPosition = deltaPosition;
   },
@@ -146,7 +129,6 @@ AFRAME.registerComponent('action', {
     // similar to the position, the rotation had to be manually tracked
     var hand = this.el.getAttribute('leap-hand').hand;
     var str;
-
     if(hand == "left"){
       str = 'l-leap';
     } else str = 'r-leap';
@@ -175,20 +157,53 @@ AFRAME.registerComponent('action', {
   },
 
   pinch: function() {
-    var hitEl = this.hitEl;
-    if(this.pinching == true && this.grabbing == false){
-      var rotation;
-      if (!hitEl) { return; }
-      this.updateRotation();
-      rotation = hitEl.getAttribute('rotation');
-      var a = this.newRotation.x;
-      var b = this.newRotation.y;
-      var c = this.newRotation.z;
-      hitEl.setAttribute('rotation', {
-        x: rotation.x - a*57.2958*0.5,
-        y: rotation.y - b*57.2958*0.5,
-        z: rotation.z - c*57.2958*0.5
-      });
+    var hand = this.el.getAttribute('leap-hand').hand;
+    if(hand == "left"){
+      if(this.pinching == true && this.grabbing == false){
+        this.updateDelta();
+        var mols =  this.el.sceneEl.querySelectorAll('.model');
+        var self = this;
+
+        mols.forEach(function move (el) {
+          position = el.getAttribute('position');
+          el.setAttribute('position', {
+            x: position.x + self.deltaPosition.x,
+            y: position.y + self.deltaPosition.y,
+            z: position.z + self.deltaPosition.z
+          });
+        });
+      }
+    } else {
+      var hitEl = this.hitEl;
+      if(this.pinching == true && this.grabbing == false){
+        var rotation;
+        if (!hitEl) { return; }
+        this.updateRotation();
+        rotation = hitEl.getAttribute('rotation');
+        var a = this.newRotation.x;
+        var b = this.newRotation.y;
+        var c = this.newRotation.z;
+        hitEl.setAttribute('rotation', {
+          x: rotation.x - a*57.2958*0.5,
+          y: rotation.y - b*57.2958*0.5,
+          z: rotation.z - c*57.2958*0.5
+        });
+      }
     }
-  }
+  },
 });
+
+
+  // Don't have pausing functionality yet. Kept commented in case we want to add it later
+  // simple insert above, below the play function
+
+  // pause: function () {
+  //   var el = this.el;
+  //   el.removeEventListener('hit', this.onHit);
+  //   el.removeEventListener('gripclose', this.onGripClose);
+  //   el.removeEventListener('gripopen', this.onGripOpen);
+  //   el.removeEventListener('pinchclose', this.onPinchClose);
+  //   el.removeEventListener('pinchopen', this.onPinchOpen);
+  //   el.removeEventListener('swipestart', this.onSwipeStart);
+  //   el.removeEventListener('swipeend', this.onSwipeEnd);
+  // },

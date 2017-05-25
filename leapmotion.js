@@ -48,13 +48,15 @@
             lpinching = false;
           }
 
-          var vel = hand.palmVelocity;
-          var speed = Math.sqrt(Math.pow(vel[0],2) + Math.pow(vel[1],2) + Math.pow(vel[2],2));
+          // var vel = hand.palmVelocity;
+          // var speed = Math.sqrt(Math.pow(vel[0],2) + Math.pow(vel[1],2) + Math.pow(vel[2],2));
 
-          if(speed > 1200){
-            lswiping = true;
-            speed = 0;
-          } else lswiping = false;
+          // if(speed > 2000 && newlswipe == true){
+          //   lswiping = true;
+          //   speed = 0;
+          // } else if(speed < 2000) {
+          //   lswiping = false;
+          // }
         } 
 
         // same as above, but for the right hand
@@ -82,13 +84,15 @@
             rpinching = false;
           }
 
-          var vel = hand.palmVelocity;
-          var speed = Math.sqrt(Math.pow(vel[0],2) + Math.pow(vel[1],2) + Math.pow(vel[2],2));
+          // var vel = hand.palmVelocity;
+          // var speed = Math.sqrt(Math.pow(vel[0],2) + Math.pow(vel[1],2) + Math.pow(vel[2],2));
 
-          if(speed > 1200){
-            rswiping = true;
-            speed = 0;
-          } else rswiping = false;
+          // if(speed > 2000 && newrswipe == true){
+          //   rswiping = true;
+          //   speed = 0;
+          // } else if(speed < 2000) {
+          //   rswiping = false;
+          // }
         }
       }
     } else {
@@ -118,13 +122,13 @@
         this.el.emit('pinchopen', {});
       }
 
-      if(lswiping == true && newlswipe == true){
-        newlswipe = false;
-        this.el.emit('swipestart', {});
-      } else if (lswiping == false) {
-        newlswipe = true;
-        this.el.emit('swipeend', {});
-      }
+      // if(lswiping == true && newlswipe == true){
+      //   newlswipe = false;
+      //   this.el.emit('swipestart', {});
+      // } else if (lswiping == false) {
+      //   newlswipe = true;
+      //   this.el.emit('swipeend', {});
+      // }
     })
   })
 
@@ -146,13 +150,13 @@
         this.el.emit('pinchopen', {});
       }
 
-      if(rswiping == true && newrswipe == true){
-        newrswipe = false;
-        this.el.emit('swipestart', {});
-      } else if (rswiping == false) {
-        newrswipe = true;
-        this.el.emit('swipeend', {});
-      }
+      // if(rswiping == true && newrswipe == true){
+      //   newrswipe = false;
+      //   this.el.emit('swipestart', {});
+      // } else if (rswiping == false) {
+      //   newrswipe = true;
+      //   this.el.emit('swipeend', {});
+      // }
     })
   })
 
