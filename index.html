@@ -3,17 +3,19 @@
   <head>
     <title>VR Molecules!</title>
     <meta name="description" content="View your molecule in Virtual Reality!">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <script src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-leap-hands/dist/aframe-leap-hands.min.js"></script>
     <script src="https://js.leapmotion.com/leap-0.6.4.min.js"></script>
-    <script src="collisions.js"></script>
     <script src="leapmotion.js"></script>
+    <script src="collisions.js"></script>
     <script src="action.js"></script>
   </head>
   <body>
 
-  <a-scene leap="vr: false">
-
+  <a-scene leap="vr: true">
   <!-- creates assets for the .obj file and matching .mtl -->
     <a-assets>
       <a-asset-item id="model" src="models/VMD/ribbon-test.obj"></a-asset-item>
@@ -21,9 +23,9 @@
     </a-assets>
 
     <!-- Leap Motion hands! -->
-    <a-entity class="cam" camera="near: 0.01" look-controls position="0 0 0" standing="false">
-      <a-entity leap-hand="hand: left" aabb-collider="objects: .model;" action l-events l-leap position="0 -0.5 -0.5"></a-entity>
-      <a-entity leap-hand="hand: right" aabb-collider="objects: .model;" action r-events r-leap position="0 -0.5 -0.5"></a-entity>
+    <a-entity class="cam" camera="near: 0.01" look-controls position="0 0 0" standing="false" rotation="180 180 180">
+      <a-entity leap-hand="hand: left" aabb-collider="objects: .model;" action l-events l-leap position="0 -0.1 -0.1"></a-entity>
+      <a-entity leap-hand="hand: right" aabb-collider="objects: .model;" action r-events r-leap position="0 -0.1 -0.1"></a-entity>
     </a-entity>
 
     <!-- loads the protein models -->

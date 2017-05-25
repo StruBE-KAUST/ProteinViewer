@@ -112,13 +112,24 @@ AFRAME.registerComponent('action', {
 
     var rotX = rot.x*0.0174533;
     var rotY = rot.y*0.0174533;
+    var rotZ = rot.z*0.0174533;
 
     var delX, delY, delZ;
 
     this.prevRot = rot;
-    delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
-    delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
-    delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
+
+    var leapVR = controllerOptions.optimizeHMD;
+    var sceneVR = this.el.sceneEl.getAttribute('leap').vr;
+
+    if(leapVR == true && sceneVR == true){
+      delX = (previousPosition.x - currentPosition.x)*Math.cos(rotZ)*Math.cos(rotY) - (previousPosition.z - currentPosition.z)*Math.sin(rotZ) + (previousPosition.y - currentPosition.y)*Math.sin(rotY); 
+      delY = (previousPosition.z - currentPosition.z)*Math.cos(rotZ)*Math.cos(rotX) + (previousPosition.x - currentPosition.x)*Math.sin(rotZ) - (previousPosition.y - currentPosition.y)*Math.sin(rotX); 
+      delZ = (previousPosition.y - currentPosition.y)*Math.cos(rotY)*Math.cos(rotX) - (previousPosition.x - currentPosition.x)*Math.sin(rotY) + (previousPosition.z - currentPosition.z)*Math.sin(rotX); 
+    } else {
+      delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
+      delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
+      delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
+    }
 
     var deltaPosition = { x: delX*0.01, y: delY*0.01, z: delZ*0.01 };
     this.previousPosition = currentPosition;

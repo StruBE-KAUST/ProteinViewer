@@ -12,7 +12,7 @@
   var rPos, lPos, rRot, lRot = {x:0, y:0, z:0}
 
   // to use HMD mode, set to true:
-  controllerOptions.optimizeHMD = false;
+  controllerOptions.optimizeHMD = true;
 
   Leap.loop(controllerOptions, function(frame) {
     if (paused) {
