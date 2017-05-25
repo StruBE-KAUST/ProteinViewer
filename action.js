@@ -21,6 +21,22 @@ AFRAME.registerComponent('action', {
     this.onPinchOpen = this.onPinchOpen.bind(this);
 
     this.prevRot = {x:0, y:0, z:0};
+
+    var leapVR = controllerOptions.optimizeHMD;
+    var sceneVR = this.el.sceneEl.getAttribute('leap').vr;
+
+    if(leapVR == true && sceneVR == true){
+      var hands = this.el.sceneEl.querySelectorAll(".hand");
+      hands.forEach(function assign (hand){
+        hand.setAttribute('position', {x:0, y:-0.1, z:-0.1})
+      })
+    } else {
+      var hands = this.el.sceneEl.querySelectorAll(".hand");
+      hands.forEach(function assign (hand){
+        hand.setAttribute('position', {x:0, y:-0.5, z:-0.5})
+      })
+    }
+
   },
 
   play: function () {
@@ -126,9 +142,9 @@ AFRAME.registerComponent('action', {
       delY = (previousPosition.z - currentPosition.z)*Math.cos(rotZ)*Math.cos(rotX) + (previousPosition.x - currentPosition.x)*Math.sin(rotZ) - (previousPosition.y - currentPosition.y)*Math.sin(rotX); 
       delZ = (previousPosition.y - currentPosition.y)*Math.cos(rotY)*Math.cos(rotX) - (previousPosition.x - currentPosition.x)*Math.sin(rotY) + (previousPosition.z - currentPosition.z)*Math.sin(rotX); 
     } else {
-      delX = (currentPosition.x - previousPosition.x)*Math.cos(rotY) + (currentPosition.z - previousPosition.z)*Math.sin(rotY);
-      delY = (currentPosition.y - previousPosition.y)*Math.cos(rotX);
-      delZ = (currentPosition.z - previousPosition.z)*Math.cos(rotY) - (currentPosition.x - previousPosition.x)*Math.sin(rotY);
+      delX = (previousPosition.x - currentPosition.x)*Math.cos(rotY) + (previousPosition.z - currentPosition.z)*Math.sin(rotY);
+      delY = (previousPosition.y - currentPosition.y)*Math.cos(rotX);
+      delZ = (previousPosition.z - currentPosition.z)*Math.cos(rotY) - (previousPosition.x - currentPosition.x)*Math.sin(rotY);
     }
 
     var deltaPosition = { x: delX*0.01, y: delY*0.01, z: delZ*0.01 };
