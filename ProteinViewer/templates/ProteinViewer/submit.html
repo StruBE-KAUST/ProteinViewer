@@ -1,0 +1,10 @@
+{% extends "ProteinViewer/base.html" %}
+{% block content %}
+<h1>ProteinViewer</h1>
+<div class="row">
+    <div class="col-md-8">
+        {% load crispy_forms_tags %}
+        {% crispy form %}
+    </div>
+</div>
+{% endblock %}

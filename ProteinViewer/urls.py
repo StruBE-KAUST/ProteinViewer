@@ -1,8 +1,6 @@
 from django.conf.urls import url
-from django.views.generic import TemplateView
+from .views import SubmitPdbFileView
 
 urlpatterns = [
-    url(r'^$', TemplateView.as_view(
-        template_name="ProteinViewer/index.html"),
-        name="home"),
+    url(r'^$', SubmitPdbFileView.as_view(), name="submit"),
 ]
