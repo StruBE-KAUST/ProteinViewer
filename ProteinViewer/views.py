@@ -60,5 +60,21 @@ class SubmitPdbFileView(View):
         log.debug("Exit")
         return response
 
-    def generate_viewer_page(request):
-        raise NotImplementedError
+    def generate_viewer_page(self, request):
+        # The file is available in request.FILE['pdb_file']
+        # as file descriptor.
+        # You can for example save it somewhere :
+        # with open(dest_file, 'wb') as destination:
+        #   for chunk in request.FILES['pdb_file']:
+        #     destination.write(chunk)
+
+        # When all the stuff is done, you can render the page with a specific
+        # context.
+        # ctx = {'obj_file_url': 'generated/obj/file.obj'}
+        # return render(request, 'ProteinViewer/viewer.html', ctx)
+        # You just need to tweak viewer.html to use the variables from ctx (see
+        # django doc about template tags, and especially about static files)
+        # You can store the generated files in django.conf.settings.STATIC_ROOT
+
+        # Return static view as previously done
+        return NotImplementedError
