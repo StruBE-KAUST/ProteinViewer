@@ -7,10 +7,12 @@
     <meta http-equiv="Expires" content="-1">
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
-    <!-- <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.3/dist/aframe-extras.js"></script> -->
+    <!-- <script type="text/javascript" src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.3/dist/aframe-extras.js"></script> -->
     <!-- <script src="https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.0/dist/aframe-physics-system.js"></script> -->
-    <script src="../../static/aframe-physics-system/dist/aframe-physics-system.js"></script>
-    <script src="../../static/aframe-extras/dist/aframe-extras.js"></script>
+    <script src="https://rawgit.com/sparksia/aframe-physics-system/master/dist/aframe-physics-system.js"></script>
+    <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
+    <!-- <script src="../../static/aframe-physics-system/dist/aframe-physics-system.js"></script> -->
+    <!-- <script src="../../static/aframe-extras/dist/aframe-extras.js"></script> -->
     <script src="../../static/js/aframe-physics-collider.js"></script>
     <script src="../../static/js/aframe-physics-collision-filter.js"></script>
     <script src="../../static/js/stuck.js"></script>s
@@ -94,18 +96,18 @@
 
 
     <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
-    <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity>
+    <!-- <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity> -->
 
     <!-- <a-entity id="daehull2" class="model" collada-model="#hulldae2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol2"></a-entity> -->
-    <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity>
+    <!-- <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity> -->
 
     <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1 -1" constraint="target: #blue"></a-entity>
     <a-entity class="model" id="clear" mixin="cube" material="color: red; opacity: 0; transparent: true" position="0 1 1"></a-entity> -->
 
 
     <!-- Sticky Boxes! -->
-    <!-- <a-entity class="model" id="red" mixin="cube" material="color: red" position="0 1 -1"></a-entity> -->
-    <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1.6 -1"></a-entity> -->
+    <a-entity class="model" id="red" mixin="cube" material="color: red" position="0 1 -1"></a-entity>
+    <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1.6 -1"></a-entity>
     <!-- <a-entity class="model" id="green" mixin="cube" material="color: green" position="0 1 1" collision-filter="group: red; collidesWith: default, red"></a-entity> -->
 
     <!-- Sticky Molecules! -->

@@ -12,6 +12,8 @@ import os
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
     render the VR viewer if no error in POST."""
+    count = 0
+
 
     @staticmethod
     def render_form(request, form=None):
@@ -64,7 +66,7 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
-        with open(os.path.join(settings.MEDIA_ROOT, 'newpdb.pdb'), 'wb+') as destination:
+        with open(os.path.join(settings.MEDIA_ROOT, 'pdb.pdb'), 'wb+') as destination:
             for chunk in request.FILES['pdb_file']:
                 destination.write(chunk)
 
