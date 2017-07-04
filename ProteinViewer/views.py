@@ -61,6 +61,12 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
+        with open(static/pdb/new.pdb, 'wb+') as destination:
+            for chunk in request.FILES['pdb_file'].chunks:
+                destination.write(chunk)
+
+        # ctx = {'obj_file_url': 'static/loadmodels/file.obj'}
+
         # The file is available in request.FILE['pdb_file']
         # as file descriptor.
         # You can for example save it somewhere :
@@ -77,4 +83,4 @@ class SubmitPdbFileView(View):
         # You can store the generated files in django.conf.settings.STATIC_ROOT
 
         # Return static view as previously done
-        return NotImplementedError
+        return #NotImplementedError
