@@ -7,14 +7,15 @@
     <meta http-equiv="Expires" content="-1">
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
-    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.3/dist/aframe-extras.js"></script>
-    <script src="https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.0/dist/aframe-physics-system.js"></script>
-    <script src="aframe-physics-collider.js"></script>
-    <script src="aframe-physics-collision-filter.js"></script>
-    <script src="stuck.js"></script>s
-    <script src="grab.js"></script>
-    <script src="react.js"></script>
-    <script src="follow.js"></script>
+    <!-- <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.3/dist/aframe-extras.js"></script> -->
+    <!-- <script src="https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.0/dist/aframe-physics-system.js"></script> -->
+    <script src="../../static/aframe-physics-system/dist/aframe-physics-system.js"></script>
+    <script src="../../static/aframe-extras/dist/aframe-extras.js"></script>
+    <script src="../../static/js/aframe-physics-collider.js"></script>
+    <script src="../../static/js/aframe-physics-collision-filter.js"></script>
+    <script src="../../static/js/stuck.js"></script>s
+    <script src="../../static/js/grab.js"></script>
+    <script src="../../static/js/react.js"></script>
     <script>
       /*allows a delayed addition of the the physics component to avoid errors */
       AFRAME.registerComponent('event-state', {
@@ -55,18 +56,18 @@
       <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
       <a-mixin id="molecule" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
-      <a-asset-item id="model1" src="../models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat1" src="../models/VMD/ribbon-test1-reduced.obj.mtl"></a-asset-item>
-      <a-asset-item id="model2" src="../models/VMD/ribbon-test2-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat2" src="../models/VMD/ribbon-test2-reduced.obj.mtl"></a-asset-item> 
-      <a-asset-item id="model3" src="../models/VMD/surface-test1-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat3" src="../models/VMD/surface-test1-reduced.obj.mtl"></a-asset-item>
-      <a-asset-item id="model4" src="../models/VMD/surface-test2-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat4" src="../models/VMD/surface-test2-reduced.obj.mtl"></a-asset-item>
+      <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
+      <a-asset-item id="mat1" src="../../static/models\VMD\ribbon-test1-reduced.obj.mtl"></a-asset-item>
+      <a-asset-item id="model2" src="../../static/models/VMD/ribbon-test2-reduced.obj"></a-asset-item>
+      <a-asset-item id="mat2" src="../../static/models/VMD/ribbon-test2-reduced.obj.mtl"></a-asset-item> 
+      <a-asset-item id="model3" src="../../static/models/VMD/surface-test1-reduced.obj"></a-asset-item>
+      <a-asset-item id="mat3" src="../../static/models/VMD/surface-test1-reduced.obj.mtl"></a-asset-item>
+      <a-asset-item id="model4" src="../../static/models/VMD/surface-test2-reduced.obj"></a-asset-item>
+      <a-asset-item id="mat4" src="../../static/models/VMD/surface-test2-reduced.obj.mtl"></a-asset-item>
     
 
-      <a-asset-item id="hulldae" src="../models/VMD/ribbon-test1-hull.dae"></a-asset-item>
-      <a-asset-item id="hulldae2" src="../models/VMD/ribbon-test2-hull.dae"></a-asset-item>
+      <a-asset-item id="hulldae" src="../../static/models/VMD/ribbon-test1-hull.dae"></a-asset-item>
+      <a-asset-item id="hulldae2" src="../../static/models/VMD/ribbon-test2-hull.dae"></a-asset-item>
     </a-assets>
 
     <!-- HTC Vive controllers! -->
@@ -92,10 +93,10 @@
     <!-- Trying to use other object as collider! -->
 
 
-    <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity>
+    <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
     <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity>
 
-    <a-entity id="daehull2" class="model" collada-model="#hulldae2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol2"></a-entity>
+    <!-- <a-entity id="daehull2" class="model" collada-model="#hulldae2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol2"></a-entity> -->
     <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity>
 
     <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1 -1" constraint="target: #blue"></a-entity>
@@ -124,7 +125,7 @@
     <a-entity class="model" obj-model="obj: #model4; mtl: #mat4" position="0.5 1 3" dynamic-body="shape: box" sleepy collision-filter="group: red; collidesWith: default, red, blue"></a-entity> -->
 
     <!-- Skybox (background) -->
-    <a-sky src="../img/skybox.jpg"></a-sky>
+    <a-sky src="../../static/img/skybox.jpg"></a-sky>
 
     <a-grid static-body collision-filter="group: default; collidesWith: red, green"></a-grid>
   </a-scene>

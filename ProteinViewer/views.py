@@ -1,10 +1,13 @@
 from django.shortcuts import render
 from django.views.generic import View
 from django.contrib import messages
+from django.conf import settings
+
 
 from .forms import SubmitPdbFileForm
 
 import logging
+import os
 
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
@@ -61,11 +64,9 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
-        with open(static/pdb/new.pdb, 'wb+') as destination:
-            for chunk in request.FILES['pdb_file'].chunks:
+        with open(os.path.join(settings.MEDIA_ROOT, 'newpdb.pdb'), 'wb+') as destination:
+            for chunk in request.FILES['pdb_file']:
                 destination.write(chunk)
-
-        # ctx = {'obj_file_url': 'static/loadmodels/file.obj'}
 
         # The file is available in request.FILE['pdb_file']
         # as file descriptor.
@@ -83,4 +84,7 @@ class SubmitPdbFileView(View):
         # You can store the generated files in django.conf.settings.STATIC_ROOT
 
         # Return static view as previously done
-        return NotImplementedError
+        response = render(
+                request,
+                'ProteinViewer/viewer.html')
+        return response
