@@ -83,4 +83,4 @@ class SubmitPdbFileView(View):
         # You can store the generated files in django.conf.settings.STATIC_ROOT
 
         # Return static view as previously done
-        return #NotImplementedError
+        return NotImplementedError
