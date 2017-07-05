@@ -7,12 +7,8 @@
     <meta http-equiv="Expires" content="-1">
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
-    <!-- <script type="text/javascript" src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.8.3/dist/aframe-extras.js"></script> -->
-    <!-- <script src="https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.0/dist/aframe-physics-system.js"></script> -->
     <script src="https://rawgit.com/sparksia/aframe-physics-system/master/dist/aframe-physics-system.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
-    <!-- <script src="../../static/aframe-physics-system/dist/aframe-physics-system.js"></script> -->
-    <!-- <script src="../../static/aframe-extras/dist/aframe-extras.js"></script> -->
     <script src="../../static/js/aframe-physics-collider.js"></script>
     <script src="../../static/js/aframe-physics-collision-filter.js"></script>
     <script src="../../static/js/stuck.js"></script>s
@@ -38,7 +34,6 @@
     </script>
   </head>
   <body>
-
   <a-scene physics="debug: true; gravity: 0" stats>
   <!-- creates assets for the .obj file and matching .mtl -->
     <a-assets>
@@ -58,8 +53,12 @@
       <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
       <a-mixin id="molecule" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
-      <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat1" src="../../static/models\VMD\ribbon-test1-reduced.obj.mtl"></a-asset-item>
+      {% load staticfiles %}
+      <a-asset-item id="model" src="{% static "models/" %}{{ obj_file }}"></a-asset-item>
+      <a-asset-item id="mat" src="{% static "models/" %}{{ mtl_file }}"></a-asset-item>
+
+      <!-- <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
+      <a-asset-item id="mat1" src="../../static/models/VMD/ribbon-test1-reduced.obj.mtl"></a-asset-item>
       <a-asset-item id="model2" src="../../static/models/VMD/ribbon-test2-reduced.obj"></a-asset-item>
       <a-asset-item id="mat2" src="../../static/models/VMD/ribbon-test2-reduced.obj.mtl"></a-asset-item> 
       <a-asset-item id="model3" src="../../static/models/VMD/surface-test1-reduced.obj"></a-asset-item>
@@ -69,7 +68,7 @@
     
 
       <a-asset-item id="hulldae" src="../../static/models/VMD/ribbon-test1-hull.dae"></a-asset-item>
-      <a-asset-item id="hulldae2" src="../../static/models/VMD/ribbon-test2-hull.dae"></a-asset-item>
+      <a-asset-item id="hulldae2" src="../../static/models/VMD/ribbon-test2-hull.dae"></a-asset-item> -->
     </a-assets>
 
     <!-- HTC Vive controllers! -->
@@ -84,6 +83,8 @@
 
     <!-- loads the protein models -->
 
+    <a-entity id="mol" class="complex" obj-model="obj: #model; mtl: #mat" position= "-0.5 1 1"></a-entity>
+
     <!-- try use simplified mesh -->
 
     <!-- <a-entity id="mol" class="model" obj-model="obj: #molcol; mtl: #matcol" position= "-0.5 1 1" collision-filter="group: red; collidesWith: default, red" dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" material="transparent: true; opacity: 0"></a-entity> -->
@@ -96,10 +97,10 @@
 
 
     <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
-    <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity>
+    <!-- <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity> -->
 
     <!-- <a-entity id="daehull2" class="model" collada-model="#hulldae2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol2"></a-entity> -->
-    <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity>
+    <!-- <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity> -->
 
     <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1 -1" constraint="target: #blue"></a-entity>
     <a-entity class="model" id="clear" mixin="cube" material="color: red; opacity: 0; transparent: true" position="0 1 1"></a-entity> -->

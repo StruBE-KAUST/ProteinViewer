@@ -2,12 +2,16 @@ from django.shortcuts import render
 from django.views.generic import View
 from django.contrib import messages
 from django.conf import settings
+from .apps import VMDConfig
+from .apps import MeshlabConfig
 
 
 from .forms import SubmitPdbFileForm
 
 import logging
 import os
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
 
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
@@ -66,27 +70,31 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
-        with open(os.path.join(settings.MEDIA_ROOT, 'pdb.pdb'), 'wb+') as destination:
+        name = 'pdb'
+        rep = 'surf'
+        pdb_name = name + '.pdb'
+        obj_name = name + '.obj'
+        mtl_name = name + '.mtl'
+        vmdpath = VMDConfig().vmdpath
+        meshpath = MeshlabConfig().meshpath
+
+        with open(os.path.join(settings.MEDIA_ROOT, pdb_name), 'wb+') as destination:
             for chunk in request.FILES['pdb_file']:
                 destination.write(chunk)
 
-        # The file is available in request.FILE['pdb_file']
-        # as file descriptor.
-        # You can for example save it somewhere :
-        # with open(dest_file, 'wb') as destination:
-        #   for chunk in request.FILES['pdb_file']:
-        #     destination.write(chunk)
+        # runs vmd and converts pdb into obj file (if want dae, convert in meshlab)
+        vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
+        vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/static/models/%s \n quit \n' %(pdb_name, rep, obj_name))
 
-        # When all the stuff is done, you can render the page with a specific
-        # context.
+        # now we want to run meshlab on the newly generated file to lower the resolution
+        subprocess.call('cd /d %s && meshlabserver -i %s/models/%s -o %s/models/%s -s LowerResolution.mlx' %(meshpath, settings.STATIC_ROOT, obj_name, settings.STATIC_ROOT, obj_name), shell=True)
+
+        context = {'obj_file': obj_name, 'mtl_file': mtl_name}
+        return render(request, 'ProteinViewer/viewer.html', context)
+
+        # When all the stuff is done, you can render the page with a specific context.
         # ctx = {'obj_file_url': 'generated/obj/file.obj'}
         # return render(request, 'ProteinViewer/viewer.html', ctx)
         # You just need to tweak viewer.html to use the variables from ctx (see
         # django doc about template tags, and especially about static files)
         # You can store the generated files in django.conf.settings.STATIC_ROOT
-
-        # Return static view as previously done
-        response = render(
-                request,
-                'ProteinViewer/viewer.html')
-        return response
