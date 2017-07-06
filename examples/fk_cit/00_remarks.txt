@@ -1,0 +1,34 @@
+Example for RANCH run
+
+Goal: build single protein chain consisting of
+* rigid domain for FKBP
+* flexible linker with TG - (10 x GS) - TG
+* rigid domain for mCitrine
+
+Starting files:
+
+- input_fk_Cit.pdb: contains both domains but no linker structure
+
+- domain01_fk.pdb : extracted from input, only FKBP domain
+
+- domain02_cit.pdb: extracted from input, only mCitrine domain
+- domain02_cit_clean.pdb: same but CRO chromophore residue deleted
+NOTE:
+        both citrine structures contain three N-terminal residues that are not
+        supposed to be in the target model (DPM)
+
+- target.fasta: the actual target molecule
+BUT:
+        - contains "X" where the CRO residue would be
+        - does not contain the non-native N-term residues in the Citrine PDB
+- target_clean.fasta:
+        - X removed
+        - non-native DPM residues added to N-term of Citrine sequence
+
+Run RANCH:
+    sequence: target_clean.fasta
+    domains: 2
+    domain 1: domain01_fk.pdb
+    domain 2: domain02_cit_clean.pdb
+
+
