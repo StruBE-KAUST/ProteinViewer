@@ -1,0 +1,17 @@
+Example for RANCH run
+
+Goal: build single protein chain consisting of
+* rigid domain for FKBP
+* flexible linker with TG - (10 x GS) - TG
+* rigid domain for mCitrine
+
+Starting files:
+
+- 01_fk.pdb : FKBP domain
+
+- 02_cit.pdb: mCitrine (1HUY, without non-native N-term and Chromophore)
+- 02_cit_chromo.pdb: same but including CRO residue
+
+- target.fasta: target sequence without chromophore residue
+
+
