@@ -14,4 +14,8 @@ Starting files:
 
 - target.fasta: target sequence without chromophore residue
 
+Scripts:
 
+- prepare4modeller.py ... define alignment for modeller -> target_aln.pir
+
+- model_fkcit.py ... run modeller, generates models in local directory

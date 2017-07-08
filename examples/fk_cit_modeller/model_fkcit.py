@@ -12,13 +12,13 @@ env = M.environ()
 env.io.atom_files_directory = ['.']
 
 class CustomModel( AM.automodel ):
+    """Override restraint generating method to define rigid body regions"""
 
     def special_restraints(self, aln):
         """
         Fix input domains as rigid bodies -- does not seem to have much
         effect on speed though
         """
-        
         # fix domains as rigid bodies to save time (manual p. 58)
         rb = M.rigid_body( self.residue_range( '4', '110' ) )
         self.restraints.rigid_bodies.append( rb )
@@ -27,13 +27,15 @@ class CustomModel( AM.automodel ):
         self.restraints.rigid_bodies.append( rb )
 
 
+## a = AM.automodel(env, ## default modelling without restraints
+
 a = CustomModel(env,
                 alnfile='target_aln.pir',
                 knowns= ('01_fk', '02_cit'),
                 sequence = 'target')
 
 a.starting_model = 1
-a.ending_model = 1
+a.ending_model = 5
 
 ## a.very_fast() ## does not seem to work for us
 
@@ -42,3 +44,4 @@ a.make()
 
 clock_end = time.time()
 print "Run finished after: ", clock_end - clock_start, " seconds."
+
