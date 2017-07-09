@@ -70,11 +70,12 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
+        # find a way to change the name per 
         name = 'pdb'
         rep = 'surf'
         pdb_name = name + '.pdb'
         obj_name = name + '.obj'
-        mtl_name = name + '.mtl'
+        mtl_name = name + '.obj.mtl'
         vmdpath = VMDConfig().vmdpath
         meshpath = MeshlabConfig().meshpath
 
@@ -84,17 +85,11 @@ class SubmitPdbFileView(View):
 
         # runs vmd and converts pdb into obj file (if want dae, convert in meshlab)
         vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-        vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/static/models/%s \n quit \n' %(pdb_name, rep, obj_name))
+        vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/models/%s \n quit \n' %(pdb_name, rep, obj_name))
 
         # now we want to run meshlab on the newly generated file to lower the resolution
-        subprocess.call('cd /d %s && meshlabserver -i %s/models/%s -o %s/models/%s -s LowerResolution.mlx' %(meshpath, settings.STATIC_ROOT, obj_name, settings.STATIC_ROOT, obj_name), shell=True)
+        subprocess.call('cd /d %s && meshlabserver -i %s/models/%s -o %s/models/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
 
+        # send render request with context to the template
         context = {'obj_file': obj_name, 'mtl_file': mtl_name}
         return render(request, 'ProteinViewer/viewer.html', context)
-
-        # When all the stuff is done, you can render the page with a specific context.
-        # ctx = {'obj_file_url': 'generated/obj/file.obj'}
-        # return render(request, 'ProteinViewer/viewer.html', ctx)
-        # You just need to tweak viewer.html to use the variables from ctx (see
-        # django doc about template tags, and especially about static files)
-        # You can store the generated files in django.conf.settings.STATIC_ROOT

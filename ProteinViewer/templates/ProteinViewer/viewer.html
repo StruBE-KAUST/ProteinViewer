@@ -53,9 +53,9 @@
       <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
       <a-mixin id="molecule" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
-      {% load staticfiles %}
-      <a-asset-item id="model" src="{% static "models/" %}{{ obj_file }}"></a-asset-item>
-      <a-asset-item id="mat" src="{% static "models/" %}{{ mtl_file }}"></a-asset-item>
+      {% load static %}
+      <a-asset-item id="model" src="{% get_media_prefix %}models/{{ obj_file }}"></a-asset-item>
+      <a-asset-item id="mat" src="{% get_media_prefix %}models/{{ mtl_file }}"></a-asset-item>
 
       <!-- <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
       <a-asset-item id="mat1" src="../../static/models/VMD/ribbon-test1-reduced.obj.mtl"></a-asset-item>
