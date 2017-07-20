@@ -1,18 +1,27 @@
 import Biskit as B 
 import json
 from django.http import HttpResponse
+from django.conf import settings
 
 def makeMatrix(request):
-	m1 = B.PDBModel('/Users/zahidh/Desktop/A-Frame/protein-viewer/ProteinViewer/testmats/01_fk.pdb')
+
+	m1 = B.PDBModel('%s/01_fk.pdb' %(settings.MEDIA_ROOT))
 	# m2 = B.PDBModel('02_cit.pdb')
 
 	t = m1.transformation(m1)
 
-	a = t[0].tolist()
-	b = t[1].tolist()
+	mat = t[0].tolist()
+	vec = t[1].tolist()
+	onelist = []
 
-	json_mat = json.dumps(a)
-	json_vec = json.dumps(b)
+	for sublist in mat:
+		for item in sublist:
+			onelist.append(item)
+		onelist.append(0)
+	onelist = onelist + [0, 0, 0, 1]
+
+	json_mat = json.dumps(onelist)
+	json_vec = json.dumps(vec)
 
 	mix = {'matrix': json_mat, 'vector': json_vec}
 	together = json.dumps(mix)

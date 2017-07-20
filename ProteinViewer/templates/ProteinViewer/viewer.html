@@ -41,11 +41,23 @@
           type: 'GET',
           url: "matrix/",
           success: function(data){
-            console.log('here');
             mat = data['matrix'];
-            vec = data.vector;
-            console.log(mat);
-            console.log(vec);
+            vec = data['vector'];
+
+            mat = JSON.parse(mat);
+            vec = JSON.parse(vec);
+
+            matrix = new THREE.Matrix4();
+            matrix.elements = mat;
+            q = new THREE.Quaternion();
+            q.setFromRotationMatrix(matrix);
+            rot = new THREE.Euler().setFromQuaternion(q)
+
+            testRot = rot.x + ', ' + rot.y + ', ' + rot.z
+            testPos = vec[0] + ', ' + vec[1] + ', ' + vec[2]
+
+            $("#mol").attr("position", testPos)
+            $("#mol").attr("rotation", testRot)
           }
         })
       });

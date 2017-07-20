@@ -65,8 +65,10 @@
       var matrix = new THREE.Matrix4();
       // will have to turn incoming 3x3 matrix into a 4x4 one
       matrix.elements = [1, 2, 0, 0, 2, 0, 1, 0, 2, 1, 1, 0, 0, 0, 0, 1]
+
       q = new THREE.Quaternion();
       q.setFromRotationMatrix(matrix);
+
       var vec = new THREE.Vector3();
       vec = {x: 5, y: 9, z: 3}
       e = new THREE.Euler().setFromQuaternion(q)
