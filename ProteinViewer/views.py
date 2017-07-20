@@ -84,11 +84,15 @@ class SubmitPdbFileView(View):
                 destination.write(chunk)
 
         # runs vmd and converts pdb into obj file (if want dae, convert in meshlab)
-        vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-        vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/models/%s \n quit \n' %(pdb_name, rep, obj_name))
+        # vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
+        vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
+        # vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/models/%s \n quit \n' %(pdb_name, rep, obj_name))
+        vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
 
         # now we want to run meshlab on the newly generated file to lower the resolution
-        subprocess.call('cd /d %s && meshlabserver -i %s/models/%s -o %s/models/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+        # commented because meshlab doesn't run well on mac
+        # subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+        # subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
 
         # send render request with context to the template
         context = {'obj_file': obj_name, 'mtl_file': mtl_name}

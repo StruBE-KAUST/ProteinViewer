@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>VR Molecules!</title>
+    <meta name="description" content="View your molecule in Virtual Reality!">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+    <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+  </head>
+  <body>
+  <a-scene physics="debug: true; gravity: 0" stats>
+  <!-- creates assets for the .obj file and matching .mtl -->
+    <a-assets>
+
+      <a-asset-item id="model" src="01_fk.obj"></a-asset-item>
+      <a-asset-item id="mat" src="01_fk.mtl"></a-asset-item>
+      <a-asset-item id="model1" src="02_cit.obj"></a-asset-item>
+      <a-asset-item id="mat1" src="02_cit.mtl"></a-asset-item>
+
+    </a-assets>
+
+    <!-- loads the protein models -->
+
+    <a-entity id="mol" class="model" obj-model="obj: #model; mtl: #mat"></a-entity>
+    <a-entity id="mol1" class="model" obj-model="obj: #model1; mtl: #mat1"></a-entity>
+    <a-entity id="mol2" class="model" obj-model="obj: #model1; mtl: #mat1"></a-entity>
+
+
+    <!-- Skybox (background) -->
+    <a-sky src="skybox.jpg"></a-sky>
+  </a-scene>
+
+  <script>
+  	$(function(){
+
+      // changes the model's position & rotation to pos & rot!!
+      var pos = "2, 2, 2"
+      var rot = "90, 90, 90"
+  		$("#mol").attr("position", pos);
+      $("#mol").attr("rotation", rot);
+
+
+      // uses a 4x4 set matrix to change model's position & rotation!!
+      var mat = new THREE.Matrix4();
+      mat.elements = [1, 2, 0, 2, 0, 1, 2, 1, 1, 2, 1, 0, 0, 2, 2, 1];
+
+      var trans = new THREE.Vector3();
+      var quat = new THREE.Quaternion();
+      var scale = new THREE.Vector3();
+
+      mat.decompose(trans, quat, scale);
+
+      var rotate = new THREE.Euler().setFromQuaternion(quat);
+
+      var strPos = trans.x + ', ' + trans.y + ', ' + trans.z;
+      var strRot = rotate.x + ', ' + rotate.y + ', ' + rotate.z
+
+      $("#mol1").attr("position", strPos);
+      $("#mol1").attr("rotation", strRot);
+
+
+      // uses a 3x3 rotation and 3x1 translation matrice to set!
+      var matrix = new THREE.Matrix4();
+      // will have to turn incoming 3x3 matrix into a 4x4 one
+      matrix.elements = [1, 2, 0, 0, 2, 0, 1, 0, 2, 1, 1, 0, 0, 0, 0, 1]
+      q = new THREE.Quaternion();
+      q.setFromRotationMatrix(matrix);
+      var vec = new THREE.Vector3();
+      vec = {x: 5, y: 9, z: 3}
+      e = new THREE.Euler().setFromQuaternion(q)
+      testRot = e.x + ', ' + e.y + ', ' + e.z
+      testPos = vec.x + ', ' + vec.y + ', ' + vec.z
+
+      $("#mol2").attr("position", testPos)
+      $("#mol2").attr("rotation", testRot)
+  	});
+  </script>
+
+  <script>
+    //$(function(){
+      // gets matrix from a python script
+
+    //});
+  </script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

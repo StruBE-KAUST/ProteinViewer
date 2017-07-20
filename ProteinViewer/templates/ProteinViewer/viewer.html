@@ -14,6 +14,7 @@
     <script src="../../static/js/stuck.js"></script>s
     <script src="../../static/js/grab.js"></script>
     <script src="../../static/js/react.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
     <script>
       /*allows a delayed addition of the the physics component to avoid errors */
       AFRAME.registerComponent('event-state', {
@@ -32,7 +33,25 @@
         }
       });
     </script>
+
+    <script>
+      $(function(){
+        $.ajax({
+          async: true,
+          type: 'GET',
+          url: "matrix/",
+          success: function(data){
+            console.log('here');
+            mat = data['matrix'];
+            vec = data.vector;
+            console.log(mat);
+            console.log(vec);
+          }
+        })
+      });
+    </script>
   </head>
+
   <body>
   <a-scene physics="debug: true; gravity: 0" stats>
   <!-- creates assets for the .obj file and matching .mtl -->

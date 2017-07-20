@@ -31,11 +31,12 @@ class CustomModel( AM.automodel ):
 
 a = CustomModel(env,
                 alnfile='target_aln.pir',
-                knowns= ('01_fk', '02_cit'),
+                knowns= ('01_fk_moved', '02_cit_moved'),
                 sequence = 'target')
 
+
 a.starting_model = 1
-a.ending_model = 5
+a.ending_model = 1
 
 ## a.very_fast() ## does not seem to work for us
 

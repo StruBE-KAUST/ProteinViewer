@@ -1,8 +1,8 @@
 import Biskit as B
 import Biskit.Mod.modUtils as U
 
-fk = B.PDBModel('01_fk.pdb')
-cit= B.PDBModel('02_cit.pdb')
+fk = B.PDBModel('01_fk_moved.pdb')
+cit= B.PDBModel('02_cit_moved.pdb')
 
 seq_fk = fk.sequence()
 seq_linker = 'TG' + 10*'GS' + 'TG'
@@ -28,6 +28,6 @@ def seq2pir( seq, name,
 
 with open('target_aln.pir', 'w') as f:
     f.write( seq2pir( seq_target, 'target', alntype='sequence') + '\n\n' )
-    f.write( seq2pir( aln_fk, '01_fk' ) + '\n\n' )
-    f.write( seq2pir( aln_cit, '02_cit')+ '\n\n' )
+    f.write( seq2pir( aln_fk, '01_fk_moved' ) + '\n\n' )
+    f.write( seq2pir( aln_cit, '02_cit_moved')+ '\n\n' )
 
