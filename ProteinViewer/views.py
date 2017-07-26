@@ -83,11 +83,16 @@ class SubmitPdbFileView(View):
             for chunk in request.FILES['pdb_file']:
                 destination.write(chunk)
 
+        # TODO: here, need to do the pdb centering and cutting, so that when we
+        # open up vmd we can run all the domains through to get objs. Then run 
+        # them all through meshlab too. ## too slooooooww..? Run many vmds and 
+        # meshlabs in parallel?
+
         # runs vmd and converts pdb into obj file (if want dae, convert in meshlab)
         # vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
         vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
         # vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/models/%s \n quit \n' %(pdb_name, rep, obj_name))
-        vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
+        vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
 
         # now we want to run meshlab on the newly generated file to lower the resolution
         # commented because meshlab doesn't run well on mac

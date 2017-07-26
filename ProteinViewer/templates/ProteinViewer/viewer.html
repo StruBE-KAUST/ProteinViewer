@@ -35,32 +35,109 @@
     </script>
 
     <script>
+      // set up csrf for POST requests:
       $(function(){
-        $.ajax({
-          async: true,
-          type: 'GET',
-          url: "matrix/",
-          success: function(data){
-            mat = data['matrix'];
-            vec = data['vector'];
+        function getCookie(name) {
+          var cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+              var cookie = jQuery.trim(cookies[i]);
+              // Does this cookie string begin with the name we want?
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+        
+        var csrftoken = getCookie('csrftoken');
 
-            mat = JSON.parse(mat);
-            vec = JSON.parse(vec);
+        function csrfSafeMethod(method) {
+          // these HTTP methods do not require CSRF protection
+          return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
 
-            matrix = new THREE.Matrix4();
-            matrix.elements = mat;
-            q = new THREE.Quaternion();
-            q.setFromRotationMatrix(matrix);
-            rot = new THREE.Euler().setFromQuaternion(q)
-
-            testRot = rot.x + ', ' + rot.y + ', ' + rot.z
-            testPos = vec[0] + ', ' + vec[1] + ', ' + vec[2]
-
-            $("#mol").attr("position", testPos)
-            $("#mol").attr("rotation", testRot)
+        $.ajaxSetup({
+          beforeSend: function(xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
           }
         })
       });
+    </script>
+
+    <script>
+      // set the position of each domain using vectors from renderRelative.py
+      $(function(){
+        getRelativePos();
+      });
+    </script>
+
+    <script>
+      function getRelativePos(){
+        $.ajax({
+          async: true,
+          type: 'GET',
+          url: "relative/",
+          success: function(data){
+            for(var i=0; i<data.length; i++){
+              pos = JSON.parse(data[i]);
+              posStr = pos[0] + ", " + pos[1] + ", " + pos[2];
+              molID = "#mol" + i
+              $(molID).attr('position', posStr);
+            }
+            sendNewPos();
+          }
+        })
+      }
+    </script>
+
+    <script>
+      // TODO: call the functions in this script in the on-grab-release function so that we send the object's position & rotation data only when it's moved (to run through biskit/modeller) by calling "sendNewPos();"
+      function sendNewPos(){
+        // temporarily change positions for testing; once moved call to grab-release just erase these two lines
+        $("#mol0").attr('position', "-96 20 13");
+        $("#mol1").attr('position', "130 27 90");
+
+        var domains = document.querySelectorAll('.model');
+        var num = domains.length;
+
+        var matrices = {}
+
+        for(var i=0; i<num; i++){
+          pos = domains[i].getAttribute('position');
+          rot = domains[i].getAttribute('rotation');
+          mat = new THREE.Matrix4;
+          mat.makeRotationFromEuler(rot);
+
+          for(var j=0; j<16; j++){
+            if(j==12){
+              mat.elements[j] = pos['x'];
+            } else if(j==13){
+              mat.elements[j] = pos['y'];
+            } else if(j==14){
+              mat.elements[j] = pos['z'];
+            }
+          }
+
+          mat = mat.elements.toString();
+          matrices['mat' + i] = mat;
+        }
+
+        $.ajax({
+          async: true,
+          type: "POST",
+          url: "return/",
+          data: matrices
+        }).done(function(msg) {
+            console.log("Done");
+            // maybe make call to modeller here? To use the newly produced pdbs? Or do we make modeller calls from python so it stays on the server side of things (like the call to vmd from views.py)? Probably better. If we run modeller from aframeData..? YES! Run modeller and get pdb for new linker, run that pdb through vmd, then load here..? Wait what. Okay yes we want to update this view when it completes, but how do we update only the linker's .obj&.mlt with the new ones? Cause after updating then we're finally done one "cycle"..  
+        })
+      }
     </script>
   </head>
 
@@ -84,9 +161,20 @@
       <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
       <a-mixin id="molecule" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
-      {% load static %}
+      <!-- {% load static %}
       <a-asset-item id="model" src="{% get_media_prefix %}models/{{ obj_file }}"></a-asset-item>
-      <a-asset-item id="mat" src="{% get_media_prefix %}models/{{ mtl_file }}"></a-asset-item>
+      <a-asset-item id="mat" src="{% get_media_prefix %}models/{{ mtl_file }}"></a-asset-item> -->
+
+      {% load static %}
+      <a-asset-item id="model0" src="{% get_media_prefix %}models/01_fk.obj"></a-asset-item>
+      <a-asset-item id="mat0" src="{% get_media_prefix %}models/01_fk.mtl"></a-asset-item>
+      <a-asset-item id="model1" src="{% get_media_prefix %}models/02_cit.obj"></a-asset-item>
+      <a-asset-item id="mat1" src="{% get_media_prefix %}models/02_cit.mtl"></a-asset-item>
+      <a-asset-item id="model2" src="{% get_media_prefix %}models/input_fk_Cit.obj"></a-asset-item>
+      <a-asset-item id="mat2" src="{% get_media_prefix %}models/input_fk_Cit.mtl"></a-asset-item>
+      <!-- <a-asset-item id="model3" src="{% get_media_prefix %}models/01_and_02.obj"></a-asset-item> -->
+      <!-- <a-asset-item id="mat3" src="{% get_media_prefix %}models/01_and_02.mtl"></a-asset-item> -->
+
 
       <!-- <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
       <a-asset-item id="mat1" src="../../static/models/VMD/ribbon-test1-reduced.obj.mtl"></a-asset-item>
@@ -103,18 +191,25 @@
     </a-assets>
 
     <!-- HTC Vive controllers! -->
+
+    <!-- TODO: SOMETHING WRONG WITH THE RAYCASTERS (suddenly stopped working?) -->
+
     <a-entity class="cont" id="one" mixin="controller" vive-controls="hand: left">
-      <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
-      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity>
+      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
+      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
     </a-entity>
     <a-entity class="cont" id="two" mixin="controller" vive-controls="hand: right">
-      <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
-      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity>
+      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
+      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
     </a-entity>
 
     <!-- loads the protein models -->
 
-    <a-entity id="mol" class="complex" obj-model="obj: #model; mtl: #mat" position= "-0.5 1 1"></a-entity>
+    <a-entity id="mol0" class="model" obj-model="obj: #model0; mtl: #mat0"></a-entity>
+    <a-entity id="mol1" class="model" obj-model="obj: #model1; mtl: #mat1"></a-entity>
+    <!-- <a-entity id="mol2" class="model" obj-model="obj: #model2; mtl: #mat2"></a-entity> -->
+    <!-- <a-entity id="mol3" class="model" obj-model="obj: #model3; mtl: #mat3"></a-entity> -->
+
 
     <!-- try use simplified mesh -->
 
@@ -161,7 +256,7 @@
     <!-- Skybox (background) -->
     <a-sky src="../../static/img/skybox.jpg"></a-sky>
 
-    <a-grid static-body collision-filter="group: default; collidesWith: red, green"></a-grid>
+    <!-- <a-grid static-body collision-filter="group: default; collidesWith: red, green"></a-grid> -->
   </a-scene>
 
   </body>
