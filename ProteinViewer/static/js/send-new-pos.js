@@ -1,7 +1,8 @@
 // TODO: call the functions in this script in the on-grab-release function so that we send the object's position & rotation data only when it's moved (to run through biskit/modeller) by calling sendNewPos();
 
 function sendNewPos(){
-  // temporarily change positions for testing; once moved call to grab-release just erase these two lines
+  // TODO: remive these lines.
+  // temporarily change positions for testing; 
   $("#mol0").attr('position', "-20 20 13");
   $("#mol1").attr('position', "30 27 45");
 

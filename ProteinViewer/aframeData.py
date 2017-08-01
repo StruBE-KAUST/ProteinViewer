@@ -57,6 +57,8 @@ def returnData(request):
 	d2t = d2t.compress(d2t.maskProtein())
 	d2t = d2t.take(range(23, 1833))
 
+	# save as a differently named file because we want to keep originals for
+	# transforming!! otherwise we get compounded transformations..
 	d1t.writePdb('%s/01_fk_cut_trans.pdb' %(settings.MEDIA_ROOT))
 	d2t.writePdb('%s/02_cit_cut_trans.pdb' %(settings.MEDIA_ROOT))
 

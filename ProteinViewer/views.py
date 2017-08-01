@@ -82,6 +82,18 @@ class SubmitPdbFileView(View):
         obj_name = name + '.obj'
         mtl_name = name + '.obj.mtl'
 
+
+
+        # temporarily define sequence, rep, num of domains & domain ranges here
+        # NOTE about domain ranges:: take residue range off sequence, NOT pdb file
+        # so if the user is asked to select the range of the sequence that's in each
+        # domain it'd be best. Or if they give the residue numbers from the sequence
+        # ## just working inside getLinker()
+
+
+
+
+
         # TODO: save this in a new, session-specific file within MEDIA_ROOT. 
         # maybe static count for file name?
 
