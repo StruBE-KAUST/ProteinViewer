@@ -5,8 +5,12 @@ from django.conf import settings
 from django.shortcuts import render
 import numpy as np
 
-from prepare4modeller import prep
-from model_fkcit import modeller
+import os
+import subprocess
+from subprocess import Popen, PIPE, STDOUT
+
+from .apps import VMDConfig
+from .apps import MeshlabConfig
 
 def returnData(request):
 	a = request.POST['mat0']
@@ -55,9 +59,5 @@ def returnData(request):
 
 	d1t.writePdb('%s/01_fk_cut_trans.pdb' %(settings.MEDIA_ROOT))
 	d2t.writePdb('%s/02_cit_cut_trans.pdb' %(settings.MEDIA_ROOT))
-
-	# make call to modeller here to use the new pdbs.
-	prep()
-	modeller()
 
 	return render(request, "ProteinViewer/viewer.html")

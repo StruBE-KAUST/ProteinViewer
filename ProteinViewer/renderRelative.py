@@ -10,18 +10,20 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
 def renderRelative(request):
+	# TODO: make this work for arbitrary # of domains
+
 	# use full pdb to find the center, not parts. Need to get the proper pdb..
 	m1 = B.PDBModel('%s/input_fk_Cit_centered.pdb' %(settings.MEDIA_ROOT))
 	refpoint = m1.center()
 
 	# split pdb up here, for now just use splitted pdbs:
-	d1 = B.PDBModel('%s/01_fk_cut.pdb' %(settings.MEDIA_ROOT))
-	d2 = B.PDBModel('%s/02_cit_cut.pdb' %(settings.MEDIA_ROOT))
+	d1 = B.PDBModel('%s/01_fk_cut_trans.pdb' %(settings.MEDIA_ROOT))
+	d2 = B.PDBModel('%s/02_cit_cut_trans.pdb' %(settings.MEDIA_ROOT))
 	d1point = d1.center()
 	d2point = d2.center()
 
-	d1toref = d1point*0.05 - refpoint*0.05;
-	d2toref = d2point*0.05 - refpoint*0.05;
+	d1toref = d1point*0.05;
+	d2toref = d2point*0.05;
 
 	# run each split pdb through vmd, for now just use objs:
 	# send generated objs to aframe along with vector somehow, for now

@@ -4,8 +4,6 @@ from django.conf import settings
 
 def prep():
         
-    print "preparing for modeller"
-
     fk = B.PDBModel('%s/01_fk_cut_trans.pdb' %(settings.MEDIA_ROOT))
     cit= B.PDBModel('%s/02_cit_cut_trans.pdb' %(settings.MEDIA_ROOT))
 

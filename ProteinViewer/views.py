@@ -2,9 +2,6 @@ from django.shortcuts import render
 from django.views.generic import View
 from django.contrib import messages
 from django.conf import settings
-from .apps import VMDConfig
-from .apps import MeshlabConfig
-
 
 from .forms import SubmitPdbFileForm
 
@@ -12,6 +9,10 @@ import logging
 import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
+
+from getLinker import getLinker
+
+import Biskit as B
 
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
@@ -70,35 +71,35 @@ class SubmitPdbFileView(View):
         return response
 
     def generate_viewer_page(self, request):
-        # find a way to change the name per 
-        name = 'pdb'
-        rep = 'surf'
+
+        rep = 'surf' # TODO: take representation from the form using request.REP / smth
+        # TODO: get number of domains from form
+        # TODO: get domain ranges from form. Store as a list of tuples (start, end)
+        # TODO: get sequence from form.
+
+        name = 'pdb' 
         pdb_name = name + '.pdb'
         obj_name = name + '.obj'
         mtl_name = name + '.obj.mtl'
-        vmdpath = VMDConfig().vmdpath
-        meshpath = MeshlabConfig().meshpath
+
+        # TODO: save this in a new, session-specific file within MEDIA_ROOT. 
+        # maybe static count for file name?
 
         with open(os.path.join(settings.MEDIA_ROOT, pdb_name), 'wb+') as destination:
             for chunk in request.FILES['pdb_file']:
                 destination.write(chunk)
 
-        # TODO: here, need to do the pdb centering and cutting, so that when we
-        # open up vmd we can run all the domains through to get objs. Then run 
-        # them all through meshlab too. ## too slooooooww..? Run many vmds and 
-        # meshlabs in parallel?
+        # TODO: write something like the above for the sequence file as well
 
-        # runs vmd and converts pdb into obj file (if want dae, convert in meshlab)
-        # vmd = subprocess.Popen('cd /d %s && vmd -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-        vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-        # vmd.communicate(input=b'mol new C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n render Wavefront C:/Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/models/%s \n quit \n' %(pdb_name, rep, obj_name))
-        vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
+        # TODO: Clean the pdb, center the pdb, then use domain ranges and number of domains
+        # to cut the given pdb up (use for # of domains for loop for pdb naming?). 
 
-        # now we want to run meshlab on the newly generated file to lower the resolution
-        # commented because meshlab doesn't run well on mac
-        # subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
-        # subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+        # TODO: pass list of generated pdbs and the sequence file to getLinker().
+
+        # want to be able to use this function whenever we update the positions
+        # of the domains. So, it will use individual pdbs for each domain
+        # getLinker() #TODO: take list of domains, domain ranges, and sequence file
 
         # send render request with context to the template
-        context = {'obj_file': obj_name, 'mtl_file': mtl_name}
+        context = {'obj_file': obj_name, 'mtl_file': mtl_name} # add everything to context..
         return render(request, 'ProteinViewer/viewer.html', context)
