@@ -13,6 +13,7 @@ from subprocess import Popen, PIPE, STDOUT
 from getLinker import getLinker
 
 import Biskit as B
+import re
 
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
@@ -78,11 +79,8 @@ class SubmitPdbFileView(View):
         # TODO: get sequence from form.
 
         name = 'pdb'
-        pdb_name = name + '.pdb'
         obj_name = name + '.obj'
         mtl_name = name + '.obj.mtl'
-
-
 
         # temporarily define sequence, rep, num of domains & domain ranges here
         # NOTE about domain ranges:: take residue range off sequence, NOT pdb file
@@ -91,21 +89,40 @@ class SubmitPdbFileView(View):
         # ## just working inside getLinker()
 
 
-
-
-
         # TODO: save this in a new, session-specific file within MEDIA_ROOT.
         # maybe static count for file name?
 
         # PDB files are stored in MEDIA_ROOT as pdb.pdb1, pdb.pdb2, ...
         for count, u_file in enumerate(request.FILES.getlist('pdb_files')):
-            with open(os.path.join(settings.MEDIA_ROOT, pdb_name + str(count)), 'wb+') as destination:
+            with open(os.path.join(settings.MEDIA_ROOT, name + str(count) + '.pdb'), 'wb+') as destination:
                 for chunk in u_file:
                     destination.write(chunk)
 
-        # sequence is available in request.POST['sequence']
+        # TODO: parse the input to get just the sequence string.. cause they could
+        # upload the whole fasta file including that top line with the >
+        sequence = request.POST['sequence']
 
-        # TODO: write something like the above for the sequence file as well
+        with open(os.path.join(settings.MEDIA_ROOT, 'sequence.fasta'), 'wb+') as destination:
+            for chunk in request.POST['sequence']:
+                destination.write(chunk)
+
+
+        domRanges = []
+
+        for i in xrange(len(request.FILES.getlist('pdb_files'))):
+            m = B.PDBModel('%s' %(settings.MEDIA_ROOT) + name + str(i) + '.pdb')
+            s = m.sequence()
+
+            print s
+
+            match = re.search(s, sequence)
+            domR = match.span()
+            domR = (domR[0], domR[1])
+            domRanges.append(domR)
+
+        print domRanges
+
+        getLinker(domRanges, 'sequence.fasta') #TODO: take list of domains, domain ranges, and sequence file (not sequence string that we have right now)
 
         # TODO: Clean the pdb, center the pdb, then use domain ranges and number of domains
         # to cut the given pdb up (use for # of domains for loop for pdb naming?).
