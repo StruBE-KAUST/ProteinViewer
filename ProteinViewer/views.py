@@ -3,7 +3,7 @@ from django.views.generic import View
 from django.contrib import messages
 from django.conf import settings
 
-from .forms import SubmitPdbFileForm
+from .forms import SubmitViewerDataForm
 
 import logging
 import os
@@ -27,7 +27,7 @@ class SubmitPdbFileView(View):
         log.debug("Enter with args: " + str(request) + " ; " + str(form))
 
         if form is None:
-            form = SubmitPdbFileForm()
+            form = SubmitViewerDataForm()
 
         response_data = render(
                 request,
@@ -48,7 +48,7 @@ class SubmitPdbFileView(View):
         log = logging.getLogger(__name__)
         log.debug("Enter with args: " + str(request))
 
-        form = SubmitPdbFileForm(
+        form = SubmitViewerDataForm(
                 request.POST,
                 request.FILES)
 
@@ -77,7 +77,7 @@ class SubmitPdbFileView(View):
         # TODO: get domain ranges from form. Store as a list of tuples (start, end)
         # TODO: get sequence from form.
 
-        name = 'pdb' 
+        name = 'pdb'
         pdb_name = name + '.pdb'
         obj_name = name + '.obj'
         mtl_name = name + '.obj.mtl'
@@ -94,17 +94,21 @@ class SubmitPdbFileView(View):
 
 
 
-        # TODO: save this in a new, session-specific file within MEDIA_ROOT. 
+        # TODO: save this in a new, session-specific file within MEDIA_ROOT.
         # maybe static count for file name?
 
-        with open(os.path.join(settings.MEDIA_ROOT, pdb_name), 'wb+') as destination:
-            for chunk in request.FILES['pdb_file']:
-                destination.write(chunk)
+        # PDB files are stored in MEDIA_ROOT as pdb.pdb1, pdb.pdb2, ...
+        for count, u_file in enumerate(request.FILES.getlist('pdb_files')):
+            with open(os.path.join(settings.MEDIA_ROOT, pdb_name + str(count)), 'wb+') as destination:
+                for chunk in u_file:
+                    destination.write(chunk)
+
+        # sequence is available in request.POST['sequence']
 
         # TODO: write something like the above for the sequence file as well
 
         # TODO: Clean the pdb, center the pdb, then use domain ranges and number of domains
-        # to cut the given pdb up (use for # of domains for loop for pdb naming?). 
+        # to cut the given pdb up (use for # of domains for loop for pdb naming?).
 
         # TODO: pass list of generated pdbs and the sequence file to getLinker().
 
