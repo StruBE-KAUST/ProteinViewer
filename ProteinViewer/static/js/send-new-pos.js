@@ -1,17 +1,20 @@
 // TODO: call the functions in this script in the on-grab-release function so that we send the object's position & rotation data only when it's moved (to run through biskit/modeller) by calling sendNewPos();
 
-function sendNewPos(){
-  // TODO: remive these lines.
-  // temporarily change positions for testing; 
-  $("#mol0").attr('position', "-20 20 13");
-  $("#mol1").attr('position', "30 27 45");
+function sendNewCoords(){
 
-  var domains = document.querySelectorAll('.model');
+  ranges = {{ ranges }}
+
+  domRanges = ranges[0]
+  allRanges = ranges[1]
+
+  var domains = document.querySelectorAll('.domain');
+  console.log(domains);
   var num = domains.length;
 
   var matrices = {}
 
   for(var i=0; i<num; i++){
+    id = domains[i].id
     pos = domains[i].getAttribute('position');
     rot = domains[i].getAttribute('rotation');
     mat = new THREE.Matrix4;
@@ -31,13 +34,37 @@ function sendNewPos(){
     matrices['mat' + i] = mat;
   }
 
+  var linkers = document.querySelectorAll('.linker');
+  var numlinkers = linkers.length;
+
+  inputs = [domRanges, allRanges, 'sequence.fasta']
+  pass = [inputs, matrices]
+
   $.ajax({
     async: true,
     type: "POST",
     url: "return/",
-    data: matrices
+    data: pass
   }).done(function(msg) {
-      console.log("Done");
-      // maybe make call to modeller here? To use the newly produced pdbs? Or do we make modeller calls from python so it stays on the server side of things (like the call to vmd from views.py)? Probably better. If we run modeller from aframeData..? YES! Run modeller and get pdb for new linker, run that pdb through vmd, then load here..? Wait what. Okay yes we want to update this view when it completes, but how do we update only the linker's .obj&.mlt with the new ones? Cause after updating then we're finally done one "cycle"..  
+    // TODO: once the new cordinates have been saved in a pdb, we need to 
+    // run ranch/vmd/etc to get the new linker. Then use code below to place
+    // the linker in the proper spot
+    pieces = {'domains': 0, 'linkers': numlinkers}
+    $.ajax({
+      async: true,
+      type: 'POST',
+      url: "relative/",
+      data: pieces
+    }).done(function(data){
+      linkers = data[1];
+      for(var i=0; i<linkers.length; i++){
+        pos = JSON.parse(linkers[i]);
+        // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!!
+        posStr = pos[0] + " " + pos[1] + " " + pos[2];
+        // posDict = {x: pos[0], y: pos[1], z: pos[2]};
+        molID = "#link" + i
+        $(molID).attr('position', posStr);
+      }
+    });  
   })
 }

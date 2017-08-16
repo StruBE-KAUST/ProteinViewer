@@ -11,43 +11,139 @@
     <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
     <script src="../../static/js/aframe-physics-collider.js"></script>
     <script src="../../static/js/aframe-physics-collision-filter.js"></script>
-    <script src="../../static/js/stuck.js"></script>s
-    <script src="../../static/js/grab.js"></script>
-    <script src="../../static/js/react.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
     <script src="../../static/js/event-state.js"></script>
     <script src="../../static/js/cookie.js"></script>
-    <script src="../../static/js/send-new-pos.js"></script>
-    <script src="../../static/js/relative-position.js"></script>
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
-        getRelativePos();
 
-        // var sceneEl = document.querySelector('a-scene');
-        // var entityEl = document.createElement('a-entity');
-        // entityEl.setAttribute('after-load', '');
-        // sceneEl.appendChild(entityEl);
-        // console.log(sceneEl);
-      });
+        counts = {{ count }}
+        pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0}
+
+        $.ajax({
+          async: true,
+          type: 'POST',
+          url: "relative/",
+          data: pieces
+        }).done(function(data){
+          domains = data[0];
+          linkers = data[1];
+          scene = document.getElementById('scene');
+          scene.domPositions = {}
+          for(var i=0; i<domains.length; i++){
+            pos = JSON.parse(domains[i]);
+          // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!! (do this for all the set position places (3 in total))
+            posStr = pos[0] + " " + pos[1] + " " + pos[2];
+            // posDict = {x: pos[0], y: pos[1], z: pos[2]};
+            molID = "#dom" + i;
+            mol = document.getElementById('dom' + i);
+            mol.setAttribute('position', posStr);
+            scene.domPositions['dom' + i] = pos;
+          }
+
+          console.log(scene.domPositions);
+
+          for(var i=0; i<linkers.length; i++){
+            pos = JSON.parse(linkers[i]);
+            posStr = pos[0] + " " + pos[1] + " " + pos[2];
+            molID = "#link" + i;
+            mol = document.getElementById('link' + i);
+            mol.setAttribute('position', posStr);
+          }
+        });      
+      });      
     </script>
-    <!-- <script>
-      AFRAME.registerComponent('after-load', {
-        init: function () {
-          this.el.setAttribute("id", "testMol");
-          this.el.setAttribute("class", "model");
-          this.el.setAttribute("obj-model", {obj : '#model2', mtl : '#mat2'});
-          this.el.setAttribute("scale", 100);
-          this.el.flushToDOM();
-          console.log(this.el);
+    <script>
+    function sendNewCoords(grabNum){
+      ranges = {{ ranges }};
+
+      domRanges = ranges[0];
+      allRanges = ranges[1];
+
+      var domains = document.querySelectorAll('.domain');
+      var num = domains.length;
+
+      var pass = {};
+
+      for(var i=0; i<num; i++){
+        pos = domains[i].getAttribute('position');
+        mat = new THREE.Matrix4;
+        quat = new THREE.Quaternion;
+        el = domains[i].object3D.matrixWorld.elements;
+
+        // since the rotation happening in PDBModel seems to be the opposite
+        // of what we want, try transpose the rotation part only: get rid of position data, transpose it, then add on position data
+        el[12] = el[13] = el[14] = 0;
+
+        mat.fromArray(el);
+
+        oldPos = scene.domPositions['dom' + i];
+
+        delx = pos['x'] - oldPos[0];
+        dely = pos['y'] - oldPos[1];
+        delz = pos['z'] - oldPos[2];
+
+        delPos = {'x': delx, 'y': dely, 'z': delz};
+        mat.setPosition(delPos);
+        mat.transpose();
+
+        mat = mat.elements.toString();
+
+        pass['mat' + i] = mat;
+
+        scene.domPositions['dom' + i] = [pos['x'], pos['y'], pos['z']];
+      }
+
+      domRanges = domRanges.toString();
+      allRanges = allRanges.toString();
+
+      pass['domRanges'] = domRanges;
+      pass['allRanges'] = allRanges;
+      pass['sequence'] = "sequence.fasta";
+      pass['grabNum'] = grabNum;
+
+      $.ajax({
+        async: true,
+        type: "POST",
+        url: "return/",
+        data: pass
+      }).done(function(msg) {
+        if(msg == 0){
+          console.log('Domains too far apart');
+          // TODO: somehow hold on to the old coordinates and rotations of the domains, and reset these? 
+        } else {
+          pieces = {'domains': 0, 'linkers': JSON.parse(msg[1]), 'grabNum': grabNum};
+          $.ajax({
+            async: true,
+            type: 'POST',
+            url: "relative/",
+            data: pieces
+          }).done(function(data){
+            domains = data[0];
+            linkers = data[1];
+            for(var i=0; i<linkers.length; i++){
+              pos = JSON.parse(linkers[i]);
+              posStr = pos[0] + " " + pos[1] + " " + pos[2];
+              mol = document.getElementById('link' + i);
+              mol.setAttribute('obj-model', 'obj', '/media/empty.obj');
+              mol.setAttribute('obj-model', 'mtl', '/media/empty.mtl');
+              mol.setAttribute('obj-model', 'obj', '/media/models/link' + i + '.' + grabNum + '.obj');
+              mol.setAttribute('obj-model', 'mtl', '/media/models/link' + i + '.' + grabNum + '.mtl');
+              mol.setAttribute('position', posStr);
+            }
+          });  
         }
       });
-    </script> -->
+    }
+    </script>
+    <script src="../../static/js/stuck.js"></script>
+    <script src="../../static/js/grab.js"></script>
+    <script src="../../static/js/react.js"></script>
   </head>
 
   <body>
 
-  <!-- TODO: Make it possible to write # of assets and molecules arbitrarily!! then use the positions and objects etc to load the objects..? (for the first time), after that just update using jQuery. -->
 
   <a-scene id="scene" physics="debug: true; gravity: 0" stats debug>
   <!-- creates assets for the .obj file and matching .mtl -->
@@ -60,77 +156,29 @@
                  >
       </a-mixin>
 
-      <a-mixin id="cube" stuck geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5" dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green"></a-mixin>
+      <a-mixin id="cube" stuck geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5"></a-mixin>
 
       <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
 
 
       <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
-      <a-mixin id="molecule" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
+      <a-mixin id="molecule" stuck></a-mixin>
+      <a-mixin id="dymol" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green"></a-mixin>
+      <a-mixin id="dylink"></a-mixin>
+      <a-mixin id="collider" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
-      <!-- {% load static %}
-      <a-asset-item id="model" src="{% get_media_prefix %}models/{{ obj_file }}"></a-asset-item>
-      <a-asset-item id="mat" src="{% get_media_prefix %}models/{{ mtl_file }}"></a-asset-item> -->
-
-      {% load static %}
-      <a-asset-item id="model0" src="{% get_media_prefix %}models/01_fk.obj"></a-asset-item>
-      <a-asset-item id="mat0" src="{% get_media_prefix %}models/01_fk.mtl"></a-asset-item>
-      <a-asset-item id="model1" src="{% get_media_prefix %}models/02_cit.obj"></a-asset-item>
-      <a-asset-item id="mat1" src="{% get_media_prefix %}models/02_cit.mtl"></a-asset-item>
-      <a-asset-item id="model2" src="{% get_media_prefix %}models/input_fk_Cit.obj"></a-asset-item>
-      <a-asset-item id="mat2" src="{% get_media_prefix %}models/input_fk_Cit.mtl"></a-asset-item>
-      <a-asset-item id="model3" src="{% get_media_prefix %}models/pdb.obj"></a-asset-item>
-      <a-asset-item id="mat3" src="{% get_media_prefix %}models/pdb.mtl"></a-asset-item>
-      <!-- <a-asset-item id="model3" src="{% get_media_prefix %}models/01_and_02.obj"></a-asset-item> -->
-      <!-- <a-asset-item id="mat3" src="{% get_media_prefix %}models/01_and_02.mtl"></a-asset-item> -->
-
-
-      <!-- <a-asset-item id="model1" src="../../static/models/VMD/ribbon-test1-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat1" src="../../static/models/VMD/ribbon-test1-reduced.obj.mtl"></a-asset-item>
-      <a-asset-item id="model2" src="../../static/models/VMD/ribbon-test2-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat2" src="../../static/models/VMD/ribbon-test2-reduced.obj.mtl"></a-asset-item> 
-      <a-asset-item id="model3" src="../../static/models/VMD/surface-test1-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat3" src="../../static/models/VMD/surface-test1-reduced.obj.mtl"></a-asset-item>
-      <a-asset-item id="model4" src="../../static/models/VMD/surface-test2-reduced.obj"></a-asset-item>
-      <a-asset-item id="mat4" src="../../static/models/VMD/surface-test2-reduced.obj.mtl"></a-asset-item>
-    
-
-      <a-asset-item id="hulldae" src="../../static/models/VMD/ribbon-test1-hull.dae"></a-asset-item>
-      <a-asset-item id="hulldae2" src="../../static/models/VMD/ribbon-test2-hull.dae"></a-asset-item> -->
+      {{ assets |safe }}
     </a-assets>
-
-    <!-- HTC Vive controllers! -->
-
-    <!-- TODO: SOMETHING WRONG WITH THE RAYCASTERS (suddenly stopped working?) -->
-
-    <a-entity class="cont" id="one" mixin="controller" vive-controls="hand: left">
-      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
-      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
-    </a-entity>
-    <a-entity class="cont" id="two" mixin="controller" vive-controls="hand: right">
-      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity>
-      <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .model" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
-    </a-entity>
 
     <!-- loads the protein models -->
 
-    <a-entity id="mol0" class="model" obj-model="obj: #model0; mtl: #mat0"></a-entity>
-    <a-entity id="mol1" class="model" obj-model="obj: #model1; mtl: #mat1"></a-entity>
-    <a-box color="red" depth="1" height="1" width="1"></a-box>
-    <!-- <a-entity id="mol2" class="model" obj-model="obj: #model2; mtl: #mat2"></a-entity> -->
-    <!-- <a-entity id="mol3" class="model" obj-model="obj: #model3; mtl: #mat3"></a-entity> -->
+    {{ entities |safe }}
 
-
-    <!-- try use simplified mesh -->
-
-    <!-- <a-entity id="mol" class="model" obj-model="obj: #molcol; mtl: #matcol" position= "-0.5 1 1" collision-filter="group: red; collidesWith: default, red" dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" material="transparent: true; opacity: 0"></a-entity> -->
-
-    <!-- <a-entity id="mol" class="model" obj-model="obj: #model2; mtl: #mat2" position= "-0.5 1 1" collision-filter="group: red; collidesWith: default, red" dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99"></a-entity> -->
-
+    <!-- TODO: make them "stuck" to an invisible box at the center instead of the grid -->
+    <!-- <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: purple"></a-box> -->
 
     <!-- Hull, Collada model -->
     <!-- Trying to use other object as collider! -->
-
 
     <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
     <!-- <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity> -->
@@ -151,22 +199,23 @@
     <!-- <a-entity class="model" mixin="molecule" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1" collision-filter="group: blue; collidesWith: default"></a-entity> -->
     <!-- <a-entity class="model" mixin="molecule" obj-model="obj: #model2; mtl: #mat2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red"></a-entity> -->
 
-    <!-- Box! -->
-    <!-- <a-entity class="model" action geometry="primitive: box; depth: 0.2; height: 0.5; width: 1" material="color: red" position="-1 2 1" scale="1 1 1" dynamic-body></a-entity>
-    <a-entity class="model" action geometry="primitive: box; depth: 0.2; height: 0.5; width: 1" material="color: blue" position="1 2 1" scale="1 1 1" dynamic-body></a-entity> -->
-
-    <!-- two cartoons -->
-    <!-- <a-entity class="model" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1" sleepy collision-filter="group: red; collidesWith: default, red, blue" dynamic-body></a-entity>
-    <a-entity class="model" obj-model="obj: #model2; mtl: #mat2" position="0.5 1 1" sleepy collision-filter="group: red; collidesWith: default, red, blue" dynamic-body></a-entity> -->
-
-    <!-- two surfaces -->
-    <!-- <a-entity class="model" obj-model="obj: #model3; mtl: #mat3" position= "-0.5 1 3" dynamic-body="shape: box" sleepy collision-filter="group: red; collidesWith: default, red, blue"></a-entity>
-    <a-entity class="model" obj-model="obj: #model4; mtl: #mat4" position="0.5 1 3" dynamic-body="shape: box" sleepy collision-filter="group: red; collidesWith: default, red, blue"></a-entity> -->
 
     <!-- Skybox (background) -->
     <a-sky src="../../static/img/skybox.jpg"></a-sky>
 
-    <!-- <a-grid static-body collision-filter="group: default; collidesWith: red, green"></a-grid> -->
+    <a-grid static-body collision-filter="group: default; collidesWith: red, green" position="100 100 100"></a-grid>
+
+    <!-- HTC Vive controllers! -->
+
+    <!-- TODO: Turn on raycasters when hulls are in use; to see if we're "inside" a collider. -->
+    <a-entity class="cont" id="left" mixin="controller" vive-controls="hand: left">
+      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity> -->
+      <!-- <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
+    </a-entity>
+    <a-entity class="cont" id="right" mixin="controller" vive-controls="hand: right">
+      <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity> -->
+      <!-- <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
+    </a-entity>
   </a-scene>
 
   </body>

@@ -21,7 +21,7 @@ AFRAME.registerComponent('stuck', {
 
   onGrab: function (evt) {
     if(this.el.sceneEl.startup == true){
-      var els = this.el.sceneEl.querySelectorAll('.model');
+      var els = this.el.sceneEl.querySelectorAll('.domain');
       var self = this;
       this.el.sceneEl.startup = false;
       if(els.length == 0){ return; }

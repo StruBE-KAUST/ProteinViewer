@@ -1,9 +1,19 @@
 AFRAME.registerComponent('react', {
+  // this class is needed for the hull colliders because the aframe-physics
+  // system does not yet have the feature of registering a hit event from within
+  // a convex hull collider; it only fires events on the surface. This and the
+  // associated raycasters can be removed once aframe-physics-system is updated
+  // with this feature.
     dependencies: ['raycaster'],
 
   init: function () {
+    // bind the event handlers
      this.onHit = this.onHit.bind(this);
      this.onMiss = this.onMiss.bind(this);
+     // using the parent el so that the two raycasters on each conroller work
+     // together; they are not independant. Only when both front and back are
+     // true (front activated by one racaster and back activated by the other),
+     // do we register a "hit"
      this.el.parentEl.front = false;
      this.el.parentEl.back = false;
   },
@@ -16,14 +26,24 @@ AFRAME.registerComponent('react', {
 
   onHit: function (evt) {
     var up = this.el.parentEl;
-    var el = evt.detail.els[0];
-    if(el.className == "model"){
+    // the raycaster "passes through" elements and hits everything in its path
+    // so we take the first element only because this is the closest element that
+    // it hits
+    var el = evt.detail.els[0]; 
+    if(el.className == "domain"){
+      // id 1 points backwards, id 2 points forwards. If a hit event is fired
+      // set value on parent element to true to registed the hit.
       if(this.el.id == 1 && up.back == false){
         up.back = true;
+        up.backEl = el;
       } else if(this.el.id == 2 && up.front == false){
         up.front = true;
+        up.frontEl = el;
       }
-      if(up.back == true && up.front == true){
+      // check if both sides are registering a hit, and if they are hitting the
+      // same element. If yes, assume the controller is inside the element and 
+      // register a hit
+      if(up.back == true && up.front == true && up.backEl == up.frontEl){
         this.el.emit('hit', {el: el});
       }
     }
@@ -32,11 +52,15 @@ AFRAME.registerComponent('react', {
   onMiss: function (evt) {
     var up = this.el.parentEl;
     var el = evt.detail.el;
-    if(el.className == "model"){
+    if(el.className == "domain"){
+      // similar to onHit, but set values on parent element to false to
+      // register no hits
       if(this.el.id == 1 && up.back == true){
         up.back = false;
+        up.backEl = null;
       } else if(this.el.id == 2 && up.front == true){
         up.front = false;
+        up.frontEl = null;
       }
     }
   }

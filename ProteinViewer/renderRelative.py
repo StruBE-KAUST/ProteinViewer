@@ -10,27 +10,29 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
 def renderRelative(request):
-	# TODO: make this work for arbitrary # of domains
 
-	# use full pdb to find the center, not parts. Need to get the proper pdb..
-	m1 = B.PDBModel('%s/input_fk_Cit_centered.pdb' %(settings.MEDIA_ROOT))
-	refpoint = m1.center()
+	dompoints = []
+	linkpoints = []
+	domains = request.POST.get('domains')
+	linkers = request.POST.get('linkers')
+	grabNum = request.POST.get('grabNum')
 
-	# split pdb up here, for now just use splitted pdbs:
-	d1 = B.PDBModel('%s/01_fk_cut_trans.pdb' %(settings.MEDIA_ROOT))
-	d2 = B.PDBModel('%s/02_cit_cut_trans.pdb' %(settings.MEDIA_ROOT))
-	d1point = d1.center()
-	d2point = d2.center()
+	for i in xrange(int(domains)):
+		file = '%spieces/dom' %(settings.MEDIA_ROOT) + str(i) + '.pdb'
+		domain = B.PDBModel(file)
+		# center = domain.boxCenter()
+		# dompoints.append(json.dumps(center))
+		center = domain.center()*0.05
+		dompoints.append(json.dumps(center.tolist()))
 
-	d1toref = d1point*0.05;
-	d2toref = d2point*0.05;
+	for i in xrange(int(linkers)):
+		file = '%spieces/link' %(settings.MEDIA_ROOT) + str(i) + '.' + str(grabNum) + '.pdb'
+		linker = B.PDBModel(file)
+		# center = linker.boxCenter()
+		# linkpoints.append(json.dumps(center))
+		center = linker.center()*0.05
+		linkpoints.append(json.dumps(center.tolist()))
 
-	# run each split pdb through vmd, for now just use objs:
-	# send generated objs to aframe along with vector somehow, for now
-	# just send vector:
-	pointdict = []
-	pointdict.append(json.dumps(d1toref.tolist()))
-	pointdict.append(json.dumps(d2toref.tolist()))
+	json_array = json.dumps([dompoints, linkpoints])
 
-	json_array = json.dumps(pointdict)
 	return HttpResponse(json_array, content_type="application/json")
