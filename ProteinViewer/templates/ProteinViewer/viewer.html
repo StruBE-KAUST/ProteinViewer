@@ -9,17 +9,24 @@
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-physics-system/master/dist/aframe-physics-system.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
+    <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
+    <script src="https://rawgit.com/mayognaise/aframe-gif-component/master/dist/aframe-gif-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-line-component/dist/aframe-line-component.min.js"></script> 
     <script src="../../static/js/aframe-physics-collider.js"></script>
     <script src="../../static/js/aframe-physics-collision-filter.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
     <script src="../../static/js/event-state.js"></script>
     <script src="../../static/js/cookie.js"></script>
+
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
+        // popup = document.getElementById('popup');
+        // console.log(popup);
+        // popup.start();
 
-        counts = {{ count }}
-        pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0}
+        counts = {{ count }};
+        pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0};
 
         $.ajax({
           async: true,
@@ -56,6 +63,11 @@
     </script>
     <script>
     function sendNewCoords(grabNum){
+      // popup = document.getElementById('popup');
+      // popup.setAttribute('material', 'shader: gif; src: #gif');
+      // popup.setAttribute('gif', "");
+      // popup.play();
+
       ranges = {{ ranges }};
 
       domRanges = ranges[0];
@@ -63,6 +75,15 @@
 
       var domains = document.querySelectorAll('.domain');
       var num = domains.length;
+      var numLink = allRanges.length - num;
+
+      for(var i=0; i<numLink; i++){
+        mol = document.getElementById('link' + i);
+        mol.setAttribute('obj-model', 'obj', '/media/empty.obj');
+        mol.setAttribute('obj-model', 'mtl', '/media/empty.mtl');
+      }
+
+      // TODO: here, make pop-up or something saying "loading" or something. Change the material of the "box" that's a child of the camera..?
 
       var pass = {};
 
@@ -109,7 +130,10 @@
         url: "return/",
         data: pass
       }).done(function(msg) {
+        console.log(msg);
+        console.log(typeof msg);
         if(msg == 0){
+          // TODO: find out why we never get this part running..
           console.log('Domains too far apart');
           // TODO: somehow hold on to the old coordinates and rotations of the domains, and reset these? 
         } else {
@@ -120,14 +144,17 @@
             url: "relative/",
             data: pieces
           }).done(function(data){
+            // TODO: remove the "loading" popup by turning the material of the child-of-camera box back to transparent
+            // popup.pause();
+            // popup.setAttribute('material', 'transparent: true; opacity: 0');
+            // popup.removeAttribute('gif');
+
             domains = data[0];
             linkers = data[1];
             for(var i=0; i<linkers.length; i++){
               pos = JSON.parse(linkers[i]);
               posStr = pos[0] + " " + pos[1] + " " + pos[2];
               mol = document.getElementById('link' + i);
-              mol.setAttribute('obj-model', 'obj', '/media/empty.obj');
-              mol.setAttribute('obj-model', 'mtl', '/media/empty.mtl');
               mol.setAttribute('obj-model', 'obj', '/media/models/link' + i + '.' + grabNum + '.obj');
               mol.setAttribute('obj-model', 'mtl', '/media/models/link' + i + '.' + grabNum + '.mtl');
               mol.setAttribute('position', posStr);
@@ -148,6 +175,7 @@
   <a-scene id="scene" physics="debug: true; gravity: 0" stats debug>
   <!-- creates assets for the .obj file and matching .mtl -->
     <a-assets>
+      <img id="gif" src="../../static/img/loading.gif"></img>
       <a-mixin id = "controller" action event-state></a-mixin>
       <a-mixin id = "controller-loaded" 
                  static-body="shape: sphere; sphereRadius: 0.05;" 
@@ -156,7 +184,7 @@
                  >
       </a-mixin>
 
-      <a-mixin id="cube" stuck geometry="primitive: box; width: 0.5; height: 0.5; depth: 0.5"></a-mixin>
+      <a-mixin id="cube" geometry="primitive: box; width: 0.01; height: 0.01; depth: 0.01"></a-mixin>
 
       <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
 
@@ -175,7 +203,9 @@
     {{ entities |safe }}
 
     <!-- TODO: make them "stuck" to an invisible box at the center instead of the grid -->
-    <!-- <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: purple"></a-box> -->
+    <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: default"></a-box>
+
+    <a-entity id="line" line="start: 0 0 0; end: 0 0 0; color: #ffff00"></a-entity>
 
     <!-- Hull, Collada model -->
     <!-- Trying to use other object as collider! -->
@@ -203,7 +233,7 @@
     <!-- Skybox (background) -->
     <a-sky src="../../static/img/skybox.jpg"></a-sky>
 
-    <a-grid static-body collision-filter="group: default; collidesWith: red, green" position="100 100 100"></a-grid>
+    <!-- <a-grid static-body collision-filter="group: default; collidesWith: red, green" position="0 -10 0"></a-grid> -->
 
     <!-- HTC Vive controllers! -->
 
@@ -216,6 +246,12 @@
       <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity> -->
       <!-- <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
     </a-entity>
+
+    <!-- Trying to make camera so that we can have a "popup" box thing that follows the head motion..
+    TODO: change the box's material to the "loading" when waiting for ranch and all to run, then change it back to invisible when done -->
+    <a-camera id="player">
+      <!-- <a-entity id="popup" geometry="primitive: box; height: 0.1; width: 0.1; depth: 0.1" material="shader: gif; src: ../../static/img/loading.gif" gif="" position="0 0 -2"></a-entity> -->
+    </a-camera>
   </a-scene>
 
   </body>

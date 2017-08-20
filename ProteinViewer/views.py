@@ -60,7 +60,7 @@ class SubmitPdbFileView(View):
             log.debug("Valid form")
 
             try:
-                response = self.generate_viewer_page(request)
+                response = self.generate_viewer_page(request, form)
             except Exception as e:
                 log.error("Error when trying to generate viewer page")
                 log.error(e)
@@ -74,7 +74,7 @@ class SubmitPdbFileView(View):
         log.debug("Exit")
         return response
 
-    def generate_viewer_page(self, request):
+    def generate_viewer_page(self, request, form):
 
         starttime = time.time()
 
@@ -115,6 +115,7 @@ class SubmitPdbFileView(View):
             domRanges.append(domR)
        
         prev = 0
+        end = len(sequence)
         allRanges = []
 
         for i in xrange(len(domRanges)):
@@ -141,11 +142,12 @@ class SubmitPdbFileView(View):
                 allRanges.append(tup)
                 prev = dom[1]
 
-        ranges = [domRanges, allRanges]
+        if(allRanges[len(allRanges) - 1])[1] != end:
+            tup = [prev - 1, end]
 
-        print '!!!! \n \n \n \n '
-        print domRanges
-        print allRanges
+        print allRanges 
+
+        ranges = [domRanges, allRanges]
 
         pieces = getLinker(domRanges, allRanges, True, 0, 'sequence.fasta') #TODO: take representation as well
         
@@ -154,7 +156,7 @@ class SubmitPdbFileView(View):
 
         if pieces == 0: 
             response = self.render_form(request, form)
-            messages.error(request, "An unexpected error occurred.")
+            messages.error(request, "Domains are too far apart!")
             return response
 
 
@@ -174,6 +176,11 @@ class SubmitPdbFileView(View):
             entities = '<a-entity id="dom' + str(i) + '\" mixin="dymol" class="domain" obj-model="obj: #dom_model' + str(i) + '; mtl: #dom_mat' + str(i) + '\"></a-entity>'
             asset_string = asset_string + assets
             entity_string = entity_string + entities
+            # TODO: uncomment the code below when transfer code to a linux system and
+            # meshlabserver works to produce the required hull colliders:
+            hobj_name = 'hull' + str(i) + '.obj'
+            hmtl_name = 'hull' + str(i) + '.obj.mtl'
+
 
         for i in xrange(linkers):
             obj_name = 'link' + str(i) + '.0.obj'

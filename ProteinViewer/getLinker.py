@@ -4,7 +4,7 @@ import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import signal
-
+import threading
 from .apps import VMDConfig
 from .apps import MeshlabConfig
 
@@ -28,29 +28,72 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 		ranchInput = ranchInput + 'pdb' + str(i) + '.pdb \n yes \n \n '
 	ranchInput = ranchInput + '10 \n \n yes \n output \n \n no \n' 
 
-
 	# TODO: use os.chdir(path) instead of cd for ranch and 
-
+	
 	starttime = time.time()
 
-	ranch = subprocess.Popen('cd %s && ranch' %(settings.MEDIA_ROOT), shell=True, stdin=PIPE, stdout=PIPE, preexec_fn=os.setsid)
+	ranch = ""
 
-	ranch.stdin.write(ranchInput)
+	def runRanch(timer):
+		print 'thread running'
+		global ranch 
+		ranch = subprocess.Popen('cd %s && ranch' %(settings.MEDIA_ROOT), shell=True, stdin=PIPE, stdout=PIPE, preexec_fn=os.setsid)
+		ranch.stdin.write(ranchInput)
 
-	while ranch.poll() == None:
-		out = ranch.stdout.readline()
-		if str(out).strip() == '[ 10%]':
-			print out
-			os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
-		else:
-			print out
+		while ranch.poll() == None:
+			line = ranch.stdout.readline()
+			if str(line).strip() == '[  1%]':
+				print 'possible'
+				timer.cancel()
+				print 'cancelled timer'
+			if str(line).strip() == '[ 10%]':
+				os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
+			print line
 
-	leftover = ranch.stdout.read()
+	def killRanch():
+		global ranch
+		print "Out of time"
+		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
 
-	print leftover
+	print 'starting thread'
+	timer = threading.Timer(5, killRanch)
+	reader = threading.Thread(target=runRanch, args=[timer])
+	readStart = time.time()
+	timer.start()
+	reader.start()
+	print 'called thread, continue'
 
-	# if leftover.strip() != "[ 20%]":
-	# 	return 0
+	# TODO: somehow pass info from thread saying it's possible
+
+	# while possible != 1:
+	# 	nowTime = time.time()
+	# 	diff = nowTime - readStart
+	# 	if diff > 5:
+	# 		print 'Domains too far'
+	# 		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
+	# 		return 0
+			# kill subprocess and thread (thread will end when I kill the 
+			# subprocess? Because of poll? Or will it still wait for the
+			# readline?), return fail. Tell user domains too far
+			# else continue and wait for ranch using p.wait & reader.join
+
+	# Wait until thread is done
+	reader.join()
+
+
+
+	# Original:
+	# while ranch.poll() == None:
+	# 	out = ranch.stdout.readline()
+	# 	if str(out).strip() == '[ 10%]':
+	# 		print out
+	# 		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
+	# 	else:
+	# 		print out
+
+	# leftover = ranch.stdout.read()
+
+	# print leftover
 
 	endtime = time.time()
 
@@ -58,7 +101,6 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	print 'Ranch takes ' + str(ranchtime) + ' to run'
 
 	# TODO: terminate ranch when one file is created
-
 
 	pulchraInput = '/Applications/pulchra304/bin/pulchra /Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/output/00001eom.pdb'
 	# runs pulchra with pdb from ranch
@@ -130,3 +172,4 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	# subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
 
 	return [domCount, linkCount]
+

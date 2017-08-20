@@ -40,13 +40,13 @@ AFRAME.registerComponent('stuck', {
 
   onRelease: function (evt) {
     var el = this.el;
-    this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-grid').body);
+    this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
     this.physics.world.addConstraint(this.constraint);
   },
 
   go: function() {
     var el = this.el;
-    this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-grid').body);
+    this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
     this.physics.world.addConstraint(this.constraint);
   }
 });

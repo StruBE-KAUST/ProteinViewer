@@ -36,6 +36,10 @@ AFRAME.registerComponent('action', {
     el.removeEventListener('triggerup', this.onGripOpen);
   },
 
+  tick: function () {
+    // here, want to 
+  },
+
   onGripClose: function (evt) {
     this.grabbing = true;
   },
@@ -74,5 +78,7 @@ AFRAME.registerComponent('action', {
     hitEl.emit('grabbed');
     scene = this.el.sceneEl;
     scene.grabbingControllers++;
+    line = document.getElementById('line');
+    line.setAttribute('line', 'color', '#ffff00');
   }
 });
