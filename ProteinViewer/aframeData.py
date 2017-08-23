@@ -21,6 +21,7 @@ def returnData(request):
 	domStr = request.POST.get('domRanges')
 	allStr = request.POST.get('allRanges')
 	sequence = request.POST.get('sequence')
+	presses = request.POST.get('presses')
 
 	domEls = map(int, domStr.split(','))
 	domRanges = []
@@ -58,9 +59,6 @@ def returnData(request):
 		dom = B.PDBModel('%spdb' %(settings.MEDIA_ROOT) + str(i) + '.pdb')
 		center = dom.center()
 
-		print "center for domain " + str(i)
-		print center
-
 		index = 0
 		for j in xrange(len(a)):
 			if j != 3 and j != 7 and j != 11:
@@ -82,9 +80,6 @@ def returnData(request):
 		a = np.array(asubbed)
 		anumpy = np.ndarray(shape=(4,4), dtype=float, buffer=a)
 
-		print "matrix for domain " + str(i)
-		print anumpy
-
 		dom = B.PDBModel('%spdb' %(settings.MEDIA_ROOT) + str(i) + 'ori.pdb')
 		dom = dom.centered()
 		domTrans = dom.transform(anumpy)
@@ -92,20 +87,16 @@ def returnData(request):
 
 	grabNum = request.POST.get('grabNum')
 
-	print 'aframeData: ' + str(grabNum)
-
 	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence)
 
-	# TODO: if runPrograms == 0 because the domains have been moved too far away
-	# for ranch to create a pool, throw an error and reset the domains' old positions
-
+	# if the domains have been moved too far away for ranch to create a pool
 	if runPrograms == 0:
-		json_output = json.dumps(runPrograms)
+		json_output = json.dumps([presses, runPrograms])
 		return HttpResponse(json_output, content_type="application/json")
 
 	linkers = len(allRanges) - len(domRanges)
 	domains = len(domRanges)
 
-	json_array = json.dumps([domains, linkers])
+	json_array = json.dumps([presses, domains, linkers])
 
 	return HttpResponse(json_array, content_type="application/json")

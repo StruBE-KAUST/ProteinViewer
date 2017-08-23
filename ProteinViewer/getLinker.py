@@ -8,20 +8,18 @@ import threading
 from .apps import VMDConfig
 from .apps import MeshlabConfig
 
+from threading import _Timer
+
+
 import Biskit as B
 import time
 
 def getLinker(domRanges, allRanges, new, grabNum, sequence):	
 	rep = "newcartoon" # TODO: get rep from user
-    # want to be able to use this function whenever we update the positions
-    # of the domains. So, it will use individual pdbs for each domain
-
-	# TODO: maybe make two functions, one gets just the linker and the other
-	# gets the whole molecule? IDK.
 
 	# In this function, we take the pdbs and the sequence and run it through 
-	# ranch to get the pdb file including the linker information. Then, we will
-	# run them through pulchra.
+	# ranch and pulchra to get the pdb file including the linker information.
+	# Then, we run these files through VMD (and meshlab) for rendering
 
 	ranchInput = '\n \n ' + sequence + ' \n ' + str(len(domRanges)) + ' \n '
 	for i in xrange(len(domRanges)):
@@ -54,64 +52,51 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 		global ranch
 		print "Out of time"
 		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
+		return True
 
-	print 'starting thread'
-	timer = threading.Timer(5, killRanch)
+	class CustomTimer(_Timer):
+	    def __init__(self, interval, function, args=[], kwargs={}):
+	        self._original_function = function
+	        super(CustomTimer, self).__init__(
+	            interval, self._do_execute, args, kwargs)
+
+	    def _do_execute(self, *a, **kw):
+	        self.result = self._original_function(*a, **kw)
+
+	    def join(self):
+	        super(CustomTimer, self).join()
+	        if hasattr(self, 'result'):
+	        	return self.result
+	        else:
+	        	return False
+
+	timer = CustomTimer(5, killRanch)
 	reader = threading.Thread(target=runRanch, args=[timer])
 	readStart = time.time()
 	timer.start()
 	reader.start()
-	print 'called thread, continue'
-
-	# TODO: somehow pass info from thread saying it's possible
-
-	# while possible != 1:
-	# 	nowTime = time.time()
-	# 	diff = nowTime - readStart
-	# 	if diff > 5:
-	# 		print 'Domains too far'
-	# 		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
-	# 		return 0
-			# kill subprocess and thread (thread will end when I kill the 
-			# subprocess? Because of poll? Or will it still wait for the
-			# readline?), return fail. Tell user domains too far
-			# else continue and wait for ranch using p.wait & reader.join
 
 	# Wait until thread is done
 	reader.join()
+	ranchKilled = timer.join()
 
+	print 'reader joined'
+	print ranchKilled
 
-
-	# Original:
-	# while ranch.poll() == None:
-	# 	out = ranch.stdout.readline()
-	# 	if str(out).strip() == '[ 10%]':
-	# 		print out
-	# 		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
-	# 	else:
-	# 		print out
-
-	# leftover = ranch.stdout.read()
-
-	# print leftover
+	if ranchKilled == True:
+		print 'returning 0'
+		return 0
 
 	endtime = time.time()
 
 	ranchtime = endtime - starttime
 	print 'Ranch takes ' + str(ranchtime) + ' to run'
 
-	# TODO: terminate ranch when one file is created
-
 	pulchraInput = '/Applications/pulchra304/bin/pulchra /Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/output/00001eom.pdb'
 	# runs pulchra with pdb from ranch
 	# TODO: change string depending on session file
 	pulchra = subprocess.Popen(pulchraInput, shell=True)
 	pulchra.wait()
-
-	# get ranges for all pieces using the ranger for the domains
-	# GET OVERLAPPING AA to close "gaps"
-
-	# TODO: what happens if a "linker" piece is at the END of the sequence?!
 
 	# cut the output pdb into all the pieces, naming the pieces by +1 to the name
 	m = B.PDBModel('%soutput/00001eom.rebuilt.pdb' %(settings.MEDIA_ROOT))
@@ -149,8 +134,6 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	meshpath = MeshlabConfig().meshpath
 
     # runs vmd to turn pdbs into .objs
-    # TODO: either move this process to a different command, or have a way
-    # to specify whether we want to vmd render all domains and linker or just linker
 	
 	if new == True:
 		for i in xrange(domCount):
@@ -168,7 +151,8 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 		vmd.wait()
 
 
-	# TODO: make everything work with meshlab; doesn't run on macos
+	# TODO: make everything work with meshlab; doesn't run on macos. Note, run meshlab
+	# on everything for lower resolution, but only on domains for the hull colliders
 	# subprocess.call('cd %s && ./meshlabserver -i %smodels/%s -o %smodels/%s -m vc fc vn -s LowerResolution.mlx' %(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
 
 	return [domCount, linkCount]

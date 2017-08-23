@@ -20,16 +20,12 @@ def renderRelative(request):
 	for i in xrange(int(domains)):
 		file = '%spieces/dom' %(settings.MEDIA_ROOT) + str(i) + '.pdb'
 		domain = B.PDBModel(file)
-		# center = domain.boxCenter()
-		# dompoints.append(json.dumps(center))
 		center = domain.center()*0.05
 		dompoints.append(json.dumps(center.tolist()))
 
 	for i in xrange(int(linkers)):
 		file = '%spieces/link' %(settings.MEDIA_ROOT) + str(i) + '.' + str(grabNum) + '.pdb'
 		linker = B.PDBModel(file)
-		# center = linker.boxCenter()
-		# linkpoints.append(json.dumps(center))
 		center = linker.center()*0.05
 		linkpoints.append(json.dumps(center.tolist()))
 

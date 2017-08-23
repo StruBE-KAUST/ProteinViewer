@@ -9,21 +9,19 @@
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-physics-system/master/dist/aframe-physics-system.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
-    <script src="https://rawgit.com/mayognaise/aframe-gif-shader/master/dist/aframe-gif-shader.min.js"></script>
-    <script src="https://rawgit.com/mayognaise/aframe-gif-component/master/dist/aframe-gif-component.min.js"></script>
     <script src="https://unpkg.com/aframe-line-component/dist/aframe-line-component.min.js"></script> 
     <script src="../../static/js/aframe-physics-collider.js"></script>
     <script src="../../static/js/aframe-physics-collision-filter.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
     <script src="../../static/js/event-state.js"></script>
     <script src="../../static/js/cookie.js"></script>
-
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
-        // popup = document.getElementById('popup');
-        // console.log(popup);
-        // popup.start();
+
+        shift = {{ shift }}
+        scene = document.getElementById('scene');
+        scene.shift = shift;
 
         counts = {{ count }};
         pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0};
@@ -36,8 +34,7 @@
         }).done(function(data){
           domains = data[0];
           linkers = data[1];
-          scene = document.getElementById('scene');
-          scene.domPositions = {}
+          scene.domPositions = {};
           for(var i=0; i<domains.length; i++){
             pos = JSON.parse(domains[i]);
           // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!! (do this for all the set position places (3 in total))
@@ -48,8 +45,6 @@
             mol.setAttribute('position', posStr);
             scene.domPositions['dom' + i] = pos;
           }
-
-          console.log(scene.domPositions);
 
           for(var i=0; i<linkers.length; i++){
             pos = JSON.parse(linkers[i]);
@@ -63,10 +58,20 @@
     </script>
     <script>
     function sendNewCoords(grabNum){
-      // popup = document.getElementById('popup');
-      // popup.setAttribute('material', 'shader: gif; src: #gif');
-      // popup.setAttribute('gif', "");
-      // popup.play();
+
+      // TODO: Here, when we let go of the grab we want the linkers connected to the moving domain to be replaced by "lines". BUT: "red line" doesn't only mean domains too far; may mean configuration not possible (eg. crossed a domain over a short linker and the linker is too short to form a new connection)
+
+      // only the newly moved domains' linkers vanish, and the lines change colour. But all the linkers will be updated; just that these ones are the ones we'll show "loading". 
+
+      scene = document.getElementById('scene');
+      presses = scene.press;
+      scene.loading = true;
+
+      var lines = document.querySelectorAll('.line');
+      for(var i=0; i<lines.length; i++){
+        line = document.getElementById('line' + i);
+        line.setAttribute('line', 'color', '#ffff00');
+      }
 
       ranges = {{ ranges }};
 
@@ -77,14 +82,6 @@
       var num = domains.length;
       var numLink = allRanges.length - num;
 
-      for(var i=0; i<numLink; i++){
-        mol = document.getElementById('link' + i);
-        mol.setAttribute('obj-model', 'obj', '/media/empty.obj');
-        mol.setAttribute('obj-model', 'mtl', '/media/empty.mtl');
-      }
-
-      // TODO: here, make pop-up or something saying "loading" or something. Change the material of the "box" that's a child of the camera..?
-
       var pass = {};
 
       for(var i=0; i<num; i++){
@@ -93,8 +90,7 @@
         quat = new THREE.Quaternion;
         el = domains[i].object3D.matrixWorld.elements;
 
-        // since the rotation happening in PDBModel seems to be the opposite
-        // of what we want, try transpose the rotation part only: get rid of position data, transpose it, then add on position data
+        // since the rotation happening in PDBModel seems to be the opposite of what we want, try transpose the rotation part only: get rid of position data, transpose it, then add on position data
         el[12] = el[13] = el[14] = 0;
 
         mat.fromArray(el);
@@ -123,6 +119,7 @@
       pass['allRanges'] = allRanges;
       pass['sequence'] = "sequence.fasta";
       pass['grabNum'] = grabNum;
+      pass['presses'] = presses;
 
       $.ajax({
         async: true,
@@ -130,27 +127,34 @@
         url: "return/",
         data: pass
       }).done(function(msg) {
-        console.log(msg);
-        console.log(typeof msg);
-        if(msg == 0){
-          // TODO: find out why we never get this part running..
-          console.log('Domains too far apart');
-          // TODO: somehow hold on to the old coordinates and rotations of the domains, and reset these? 
-        } else {
-          pieces = {'domains': 0, 'linkers': JSON.parse(msg[1]), 'grabNum': grabNum};
+
+        // if the configuration is not possible, turn the lines red. If it works, set the lines back to length 0 and put in the linkers.
+
+        if(msg[0] == presses && msg[1] == 0){
+          for(var i=0; i<lines.length; i++){
+            line = document.getElementById('line' + i);
+            line.setAttribute('line', 'color', '#ff0000');
+            scene.loading = false;
+          }
+        } else if(msg[0] == presses) {
+          pieces = {'domains': 0, 'linkers': JSON.parse(msg[2]), 'grabNum': grabNum};
           $.ajax({
             async: true,
             type: 'POST',
             url: "relative/",
             data: pieces
           }).done(function(data){
-            // TODO: remove the "loading" popup by turning the material of the child-of-camera box back to transparent
-            // popup.pause();
-            // popup.setAttribute('material', 'transparent: true; opacity: 0');
-            // popup.removeAttribute('gif');
 
             domains = data[0];
             linkers = data[1];
+
+            for(var i=0; i<lines.length; i++){
+              line = document.getElementById('line' + i);
+              line.setAttribute('line', 'color', '#00ff00');
+              line.setAttribute('line', 'start', '0 0 0');
+              line.setAttribute('line', 'end', '0 0 0');
+            }
+
             for(var i=0; i<linkers.length; i++){
               pos = JSON.parse(linkers[i]);
               posStr = pos[0] + " " + pos[1] + " " + pos[2];
@@ -159,11 +163,14 @@
               mol.setAttribute('obj-model', 'mtl', '/media/models/link' + i + '.' + grabNum + '.mtl');
               mol.setAttribute('position', posStr);
             }
+
+            scene.loading = false;
           });  
         }
       });
     }
     </script>
+    <script src="../../static/js/follow.js"></script>
     <script src="../../static/js/stuck.js"></script>
     <script src="../../static/js/grab.js"></script>
     <script src="../../static/js/react.js"></script>
@@ -173,7 +180,6 @@
 
 
   <a-scene id="scene" physics="debug: true; gravity: 0" stats debug>
-  <!-- creates assets for the .obj file and matching .mtl -->
     <a-assets>
       <img id="gif" src="../../static/img/loading.gif"></img>
       <a-mixin id = "controller" action event-state></a-mixin>
@@ -188,24 +194,26 @@
 
       <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
 
-
-      <!-- Since we want to have a better mesh and the hull & mesh don't work properly -->
       <a-mixin id="molecule" stuck></a-mixin>
       <a-mixin id="dymol" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green"></a-mixin>
       <a-mixin id="dylink"></a-mixin>
       <a-mixin id="collider" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
+      <!-- Get the asset string that was build in views.py -->
       {{ assets |safe }}
     </a-assets>
 
     <!-- loads the protein models -->
 
+    <!-- Get the entities that were built in views.py -->
     {{ entities |safe }}
 
-    <!-- TODO: make them "stuck" to an invisible box at the center instead of the grid -->
+    <!-- make them "stuck" to an invisible box at the center -->
     <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: default"></a-box>
 
-    <a-entity id="line" line="start: 0 0 0; end: 0 0 0; color: #ffff00"></a-entity>
+
+
+
 
     <!-- Hull, Collada model -->
     <!-- Trying to use other object as collider! -->
@@ -247,12 +255,6 @@
       <!-- <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->
     </a-entity>
 
-    <!-- Trying to make camera so that we can have a "popup" box thing that follows the head motion..
-    TODO: change the box's material to the "loading" when waiting for ranch and all to run, then change it back to invisible when done -->
-    <a-camera id="player">
-      <!-- <a-entity id="popup" geometry="primitive: box; height: 0.1; width: 0.1; depth: 0.1" material="shader: gif; src: ../../static/img/loading.gif" gif="" position="0 0 -2"></a-entity> -->
-    </a-camera>
   </a-scene>
-
   </body>
 </html>

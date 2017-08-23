@@ -16,6 +16,14 @@ AFRAME.registerComponent('follow', {
 
   onDone: function () {
     var target = document.getElementById(this.data.target);
-    THREE.SceneUtils.attach(target.object3D, this.el.sceneEl.object3D, this.el.object3D); 
+    target.object3D.updateMatrixWorld();
+    this.el.object3D.updateMatrixWorld();
+    THREE.SceneUtils.attach(this.el.object3D, this.el.sceneEl.object3D, target.object3D);
+    if(!target.boxes){
+      target.boxes = [this.el];
+    } else {
+      boxes = target.boxes;
+      boxes.push(this.el);
+    }
   }
 });
