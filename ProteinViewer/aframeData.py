@@ -90,13 +90,15 @@ def returnData(request):
 	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence)
 
 	# if the domains have been moved too far away for ranch to create a pool
-	if runPrograms == 0:
-		json_output = json.dumps([presses, runPrograms])
+	if runPrograms == None:
+		json_output = json.dumps([presses, grabNum, runPrograms])
+		print json_output
 		return HttpResponse(json_output, content_type="application/json")
 
 	linkers = len(allRanges) - len(domRanges)
 	domains = len(domRanges)
 
-	json_array = json.dumps([presses, domains, linkers])
+	json_array = json.dumps([presses, grabNum, domains, linkers])
+	print json_array
 
 	return HttpResponse(json_array, content_type="application/json")

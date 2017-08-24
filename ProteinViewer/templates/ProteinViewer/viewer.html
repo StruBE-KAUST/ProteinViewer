@@ -32,8 +32,8 @@
           url: "relative/",
           data: pieces
         }).done(function(data){
-          domains = data[0];
-          linkers = data[1];
+          domains = data[1];
+          linkers = data[2];
           scene.domPositions = {};
           for(var i=0; i<domains.length; i++){
             pos = JSON.parse(domains[i]);
@@ -128,44 +128,60 @@
         data: pass
       }).done(function(msg) {
 
+        console.log('done return call');
         // if the configuration is not possible, turn the lines red. If it works, set the lines back to length 0 and put in the linkers.
+        scene = document.getElementById('scene');
+        presses = scene.press;
+        console.log(presses);
+        console.log(msg);
+        grabNum = msg[1];
 
-        if(msg[0] == presses && msg[1] == 0){
+
+        if(msg[0] == presses && msg[2] == null){
           for(var i=0; i<lines.length; i++){
             line = document.getElementById('line' + i);
             line.setAttribute('line', 'color', '#ff0000');
             scene.loading = false;
           }
         } else if(msg[0] == presses) {
-          pieces = {'domains': 0, 'linkers': JSON.parse(msg[2]), 'grabNum': grabNum};
+          pieces = {'domains': 0, 'linkers': JSON.parse(msg[3]), 'grabNum': grabNum, 'presses': presses};
           $.ajax({
             async: true,
             type: 'POST',
             url: "relative/",
             data: pieces
           }).done(function(data){
+            scene = document.getElementById('scene');
 
-            domains = data[0];
-            linkers = data[1];
+            presses = data[0];
+            domains = data[1];
+            linkers = data[2];
 
-            for(var i=0; i<lines.length; i++){
-              line = document.getElementById('line' + i);
-              line.setAttribute('line', 'color', '#00ff00');
-              line.setAttribute('line', 'start', '0 0 0');
-              line.setAttribute('line', 'end', '0 0 0');
+            console.log('after relative');
+            console.log(presses);
+            console.log(scene.press);   
+
+            if(presses == scene.press){
+              for(var i=0; i<lines.length; i++){
+                line = document.getElementById('line' + i);
+                line.setAttribute('line', 'color', '#00ff00');
+                line.setAttribute('line', 'start', '0 0 0');
+                line.setAttribute('line', 'end', '0 0 0');
+              }
+
+              for(var i=0; i<linkers.length; i++){
+                pos = JSON.parse(linkers[i]);
+                posStr = pos[0] + " " + pos[1] + " " + pos[2];
+                mol = document.getElementById('link' + i);
+                mol.setAttribute('obj-model', 'obj', '/media/models/link' + i + '.' + grabNum + '.obj');
+                mol.setAttribute('obj-model', 'mtl', '/media/models/link' + i + '.' + grabNum + '.mtl');
+                mol.setAttribute('position', posStr);
+              }
+              scene.loading = false;
             }
-
-            for(var i=0; i<linkers.length; i++){
-              pos = JSON.parse(linkers[i]);
-              posStr = pos[0] + " " + pos[1] + " " + pos[2];
-              mol = document.getElementById('link' + i);
-              mol.setAttribute('obj-model', 'obj', '/media/models/link' + i + '.' + grabNum + '.obj');
-              mol.setAttribute('obj-model', 'mtl', '/media/models/link' + i + '.' + grabNum + '.mtl');
-              mol.setAttribute('position', posStr);
-            }
-
-            scene.loading = false;
           });  
+        } else {
+          console.log('not matching');
         }
       });
     }
@@ -174,6 +190,7 @@
     <script src="../../static/js/stuck.js"></script>
     <script src="../../static/js/grab.js"></script>
     <script src="../../static/js/react.js"></script>
+    <script src="../../static/js/THREE.MeshLine.js"></script>
   </head>
 
   <body>

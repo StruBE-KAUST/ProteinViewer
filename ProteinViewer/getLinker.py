@@ -85,7 +85,7 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 
 	if ranchKilled == True:
 		print 'returning 0'
-		return 0
+		return None
 
 	endtime = time.time()
 

@@ -16,6 +16,7 @@ def renderRelative(request):
 	domains = request.POST.get('domains')
 	linkers = request.POST.get('linkers')
 	grabNum = request.POST.get('grabNum')
+	presses = request.POST.get('presses')
 
 	for i in xrange(int(domains)):
 		file = '%spieces/dom' %(settings.MEDIA_ROOT) + str(i) + '.pdb'
@@ -29,6 +30,6 @@ def renderRelative(request):
 		center = linker.center()*0.05
 		linkpoints.append(json.dumps(center.tolist()))
 
-	json_array = json.dumps([dompoints, linkpoints])
+	json_array = json.dumps([presses, dompoints, linkpoints])
 
 	return HttpResponse(json_array, content_type="application/json")

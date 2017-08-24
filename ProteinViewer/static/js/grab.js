@@ -9,8 +9,8 @@ AFRAME.registerComponent('action', {
     this.GRABBED_STATE = 'grabbed';
 
     this.grabbing = false;
-    this.holding = false;
     this.gripping = false;
+    this.holding = false;
     this.hitEl =      /** @type {AFRAME.Element}    */ null;
     this.physics =    /** @type {AFRAME.System}     */ this.el.sceneEl.systems.physics;
     this.constraint = /** @type {CANNON.Constraint} */ null;
@@ -19,8 +19,8 @@ AFRAME.registerComponent('action', {
     this.onHit = this.onHit.bind(this);
     this.onTriggerUp = this.onTriggerUp.bind(this);
     this.onTriggerDown = this.onTriggerDown.bind(this);
-    this.onGripUp = this.onGripUp.bind(this);
-    this.onGripDown = this.onGripDown.bind(this);
+    // this.onGripUp = this.onGripUp.bind(this);
+    // this.onGripDown = this.onGripDown.bind(this);
     scene = this.el.sceneEl;
     scene.grabbingControllers = 0;
     scene.grabNum = 0;
@@ -36,40 +36,41 @@ AFRAME.registerComponent('action', {
     el.addEventListener('hit', this.onHit);
     el.addEventListener('triggerdown', this.onTriggerDown);
     el.addEventListener('triggerup', this.onTriggerUp);
-    el.addEventListener('gripdown', this.onGripDown);
-    el.addEventListener('gripup', this.onGripUp);
+    // el.addEventListener('gripdown', this.onGripDown);
+    // el.addEventListener('gripup', this.onGripUp);
   },
 
-  pause: function () {
-    var el = this.el;
-    el.removeEventListener('hit', this.onHit);
-    el.removeEventListener('triggerdown', this.onTriggerDown);
-    el.removeEventListener('triggerup', this.onTriggerUp);
-  },
+  // pause: function () {
+  //   var el = this.el;
+  //   el.removeEventListener('hit', this.onHit);
+  //   el.removeEventListener('triggerdown', this.onTriggerDown);
+  //   el.removeEventListener('triggerup', this.onTriggerUp);
+  // },
 
   onTriggerDown: function (evt) {
-    this.grabbing = true;
     scene = this.el.sceneEl;
+    // grip or trigger, whichever is used first will trigger the boxes to stick 
+    // to their respective domains
     if(scene.first == 0){
+      scene.first = 1;
       boxes = document.querySelectorAll('.collision');
-      console.log(boxes);
       for(var i=0; i<boxes.length; i++){
         boxes[i].emit('follow');
       }
-      scene.first = 1;
     }
 
     // TODO: FIX THIS CLASS so that it doesn't allow hold-then-collide grabs
-    // and only grabs if colliding then hold..
-    if(this.holding == true){
+    // and only grabs if colliding then hold.. 
+    if(!this.holdEl && this.hitEl){
+      this.grabbing = true;
       scene.press = scene.press + 1;
     }
   },
 
   onTriggerUp: function (evt) {
-    var hitEl = this.hitEl;
+    var hitEl = this.holdEl;
     this.grabbing = false; 
-    this.holding = false; 
+    this.holding = false;
     if (!hitEl) { return; }
     // if there is an entity, release it by removing the lock constraint that holds
     // it to the controller. Then call sendNewCoords() to update the linker
@@ -84,53 +85,67 @@ AFRAME.registerComponent('action', {
       sendNewCoords(scene.grabNum);
       scene.grabNum++;
     }
+    this.holdEl = null;
   },
 
 
   // TODO: Create functions for the "grip" buttons so that we can move all the 
   // domains/linkers/etc at once so that the whole molecule basically "moves"
 
-  onGripDown: function (evt) {
-    scene = this.el.sceneEl;
-    if(scene.loading == false && this.grabbing == false){
-      this.gripping = true;
-      doms = document.querySelectorAll('.domain');
-      links = document.querySelectorAll('.linker');
-      for(i=0; i<doms.length; i++){
-        doms[i].emit('grabbed');
-      }
-      for(i=0; i<links.length; i++){
-        links[i].object3D.updateMatrixWorld();
-        this.el.object3D.updateMatrixWorld();
-        THREE.SceneUtils.attach(links[i].object3D, this.el.sceneEl.object3D, this.el.object3D);
-      }
-    }
-  },
+  // onGripDown: function (evt) {
+  //   scene = this.el.sceneEl;
+  //   // grip or trigger, whichever is used first will trigger the boxes to stick 
+  //   // to their respective domains
+  //   if(scene.first == 0){
+  //     scene.first = 1;
+  //     boxes = document.querySelectorAll('.collision');
+  //     console.log(boxes);
+  //     for(var i=0; i<boxes.length; i++){
+  //       boxes[i].emit('follow');
+  //     }
+  //   }
 
-  onGripUp: function (evt) {
-    if(this.gripping == true){
-      doms = document.querySelectorAll('.domain');
-      links = document.querySelectorAll('.linker');
-      for(i=0; i<doms.length; i++){
-        doms[i].emit('released');
-      }
-      for(i=0; i<links.length; i++){
-        THREE.SceneUtils.detach(links[i].object3D, this.el.object3D, this.el.sceneEl.object3D);
-      }
-      this.gripping = false;
-    }
-  },
+  //   if(scene.loading == false && this.grabbing == false){
+  //     this.gripping = true;
+  //     doms = document.querySelectorAll('.domain');
+  //     links = document.querySelectorAll('.linker');
+  //     for(i=0; i<doms.length; i++){
+  //       doms[i].emit('grabbed');
+  //     }
+  //     for(i=0; i<links.length; i++){
+  //       links[i].object3D.updateMatrixWorld();
+  //       this.el.object3D.updateMatrixWorld();
+  //       THREE.SceneUtils.attach(links[i].object3D, this.el.sceneEl.object3D, this.el.object3D);
+  //     }
+  //   }
+  // },
+
+  // onGripUp: function (evt) {
+  //   if(this.gripping == true){
+  //     doms = document.querySelectorAll('.domain');
+  //     links = document.querySelectorAll('.linker');
+  //     for(i=0; i<doms.length; i++){
+  //       doms[i].emit('released');
+  //     }
+  //     for(i=0; i<links.length; i++){
+  //       THREE.SceneUtils.detach(links[i].object3D, this.el.object3D, this.el.sceneEl.object3D);
+  //     }
+  //     this.gripping = false;
+  //   }
+  // },
+
 
   onHit: function (evt) {
     var hitEl = evt.detail.el;
+    this.hitEl = hitEl;
     // Grab conditions:
     // If the element is already grabbed (it could be grabbed by another controller), can't grab it.
     // If the hand is not grabbing, the element does not stick.
     // If we're already grabbing something you can't grab again.
-    if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing || this.hitEl) { return; }
+    if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing || this.holdEl) { return; }
     hitEl.addState(this.GRABBED_STATE);
-    this.hitEl = hitEl;
     this.holding = true;
+    this.holdEl = hitEl;
     // attach the entity to the grabbing controller
     this.constraint = new CANNON.LockConstraint(this.el.body, hitEl.body);
     this.physics.world.addConstraint(this.constraint);
@@ -155,6 +170,8 @@ AFRAME.registerComponent('action', {
       linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
     }
 
+    // if holding the first domain, check for starting linker and make it vanish
+    // if holding the last domain, check for ending linker and make it vanish
     doms = document.querySelectorAll('.domain');
     doms = doms.length;
     domsForStr = doms - 1;
@@ -176,6 +193,62 @@ AFRAME.registerComponent('action', {
       linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
     }
   },
+
+  // onHit: function (evt) {
+  //   var hitEl = evt.detail.el;
+  //   this.hitEl = hitEl;
+  //   // Grab conditions:
+  //   // If the element is already grabbed (it could be grabbed by another controller), can't grab it.
+  //   // If the hand is not grabbing, the element does not stick.
+  //   // If we're already grabbing something you can't grab again.
+  //   if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing) { return; }
+  //   hitEl.addState(this.GRABBED_STATE);
+  //   this.holding = true;
+  //   // attach the entity to the grabbing controller
+  //   this.constraint = new CANNON.LockConstraint(this.el.body, hitEl.body);
+  //   this.physics.world.addConstraint(this.constraint);
+  //   hitEl.emit('grabbed');
+  //   scene = this.el.sceneEl;
+  //   scene.grabbingControllers++;
+  //   // somehow have to know which lines are affected by this move!! Then get rid of
+  //   // this linker affected and put in the line..
+  //   boxes = hitEl.boxes;
+  //   lines = [];
+  //   links = [];
+  //   for(var i=0; i<boxes.length; i++){
+  //     line = boxes[i].getAttribute('line');
+  //     lines.push(line);
+  //     link = boxes[i].getAttribute('link');
+  //     links.push(link);
+  //   }
+  //   this.lines = lines;
+  //   for(var i=0; i<links.length; i++){
+  //     linker = document.getElementById('link' + links[i]);
+  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
+  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
+  //   }
+
+  //   doms = document.querySelectorAll('.domain');
+  //   doms = doms.length;
+  //   domsForStr = doms - 1;
+  //   linkers = document.querySelectorAll('.linker');
+  //   linkers = linkers.length;
+  //   linkersForStr = linkers - 1;
+  //   scene = document.getElementById('scene');
+  //   shift = scene.shift;
+  //   leftover = linkers - shift - doms;
+
+  //   if(hitEl.id == 'dom0' && shift == 1){
+  //     linker = document.getElementById('link0');
+  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
+  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
+  //   }
+  //   if(hitEl.id == 'dom' + domsForStr && leftover == 0){
+  //     linker = document.getElementById('link' + linkersForStr);
+  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
+  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
+  //   }
+  // },
 
   tick: function(){
     if(this.holding == true){
