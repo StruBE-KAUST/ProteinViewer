@@ -14,9 +14,7 @@ from threading import _Timer
 import Biskit as B
 import time
 
-def getLinker(domRanges, allRanges, new, grabNum, sequence):	
-	rep = "newcartoon" # TODO: get rep from user
-
+def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):	
 	# In this function, we take the pdbs and the sequence and run it through 
 	# ranch and pulchra to get the pdb file including the linker information.
 	# Then, we run these files through VMD (and meshlab) for rendering
@@ -24,7 +22,7 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	ranchInput = '\n \n ' + sequence + ' \n ' + str(len(domRanges)) + ' \n '
 	for i in xrange(len(domRanges)):
 		ranchInput = ranchInput + 'pdb' + str(i) + '.pdb \n yes \n \n '
-	ranchInput = ranchInput + '10 \n \n yes \n output \n \n no \n' 
+	ranchInput = ranchInput + '10 \n \n yes \n \n \n no \n' 
 
 	# TODO: use os.chdir(path) instead of cd for ranch and 
 	
@@ -35,7 +33,7 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	def runRanch(timer):
 		print 'thread running'
 		global ranch 
-		ranch = subprocess.Popen('cd %s && ranch' %(settings.MEDIA_ROOT), shell=True, stdin=PIPE, stdout=PIPE, preexec_fn=os.setsid)
+		ranch = subprocess.Popen('cd %s && ranch' %(tempDir), shell=True, stdin=PIPE, stdout=PIPE, preexec_fn=os.setsid)
 		ranch.stdin.write(ranchInput)
 
 		while ranch.poll() == None:
@@ -92,14 +90,14 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 	ranchtime = endtime - starttime
 	print 'Ranch takes ' + str(ranchtime) + ' to run'
 
-	pulchraInput = '/Applications/pulchra304/bin/pulchra /Users/zahidh/Desktop/A-Frame/StruBE-website/data/media/output/00001eom.pdb'
+	pulchraInput = '/Applications/pulchra304/bin/pulchra %s/00001eom.pdb' %(tempDir)
 	# runs pulchra with pdb from ranch
 	# TODO: change string depending on session file
 	pulchra = subprocess.Popen(pulchraInput, shell=True)
 	pulchra.wait()
 
 	# cut the output pdb into all the pieces, naming the pieces by +1 to the name
-	m = B.PDBModel('%soutput/00001eom.rebuilt.pdb' %(settings.MEDIA_ROOT))
+	m = B.PDBModel('%s/00001eom.rebuilt.pdb' %(tempDir))
 	if new == True:
 		m = m.centered()
 
@@ -112,15 +110,15 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 		pdb_name = ""
 		ori_name = ""
 		if allRanges[i] in domRanges:
-			pdb_name = '%spieces/dom' %(settings.MEDIA_ROOT) + str(domCount) + '.pdb'
+			pdb_name = '%s/dom' %(tempDir) + str(domCount) + '.pdb'
 			if new == True:
-				dom_name = '%spdb' %(settings.MEDIA_ROOT) + str(domCount) + '.pdb'
-				ori_name = '%spdb' %(settings.MEDIA_ROOT) + str(domCount) + 'ori.pdb'
+				dom_name = '%s/pdb' %(tempDir) + str(domCount) + '.pdb'
+				ori_name = '%s/pdb' %(tempDir) + str(domCount) + 'ori.pdb'
 				piece.writePdb(ori_name)
 				piece.writePdb(dom_name)
 			domCount = domCount + 1
 		else:
-			pdb_name = '%spieces/link' %(settings.MEDIA_ROOT) + str(linkCount) + '.' + str(grabNum) + '.pdb'
+			pdb_name = '%s/link' %(tempDir) + str(linkCount) + '.' + str(grabNum) + '.pdb'
 			linkCount = linkCount + 1
 
 		print pdb_name
@@ -140,14 +138,14 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence):
 			pdb_name = 'dom' + str(i) + '.pdb'
 			obj_name = 'dom' + str(i) + '.obj'
 			vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-			vmd.communicate(input=b'\n axes location off \n mol new %spieces/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
+			vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %s/%s \n quit \n' %(tempDir, pdb_name, rep, tempDir, obj_name))
 			vmd.wait()
 
 	for i in xrange(linkCount):
 		pdb_name = 'link' + str(i) + '.' + str(grabNum) + '.pdb'
 		obj_name = 'link' + str(i) + '.' + str(grabNum) + '.obj'
 		vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
-		vmd.communicate(input=b'\n axes location off \n mol new %spieces/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %smodels/%s \n quit \n' %(settings.MEDIA_ROOT, pdb_name, rep, settings.MEDIA_ROOT, obj_name))
+		vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %s/%s \n quit \n' %(tempDir, pdb_name, rep, tempDir, obj_name))
 		vmd.wait()
 
 

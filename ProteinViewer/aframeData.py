@@ -22,6 +22,14 @@ def returnData(request):
 	allStr = request.POST.get('allRanges')
 	sequence = request.POST.get('sequence')
 	presses = request.POST.get('presses')
+	rep = request.POST.get('rep')
+	tempDir = request.POST.get('temp')
+
+	print 'in return'
+	key = request.session.session_key
+	print key
+	temp = request.session['temp']
+	print temp
 
 	domEls = map(int, domStr.split(','))
 	domRanges = []
@@ -56,7 +64,7 @@ def returnData(request):
 		a = matrices[i]
 		a = a.split(',')
 
-		dom = B.PDBModel('%spdb' %(settings.MEDIA_ROOT) + str(i) + '.pdb')
+		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + '.pdb')
 		center = dom.center()
 
 		index = 0
@@ -80,14 +88,14 @@ def returnData(request):
 		a = np.array(asubbed)
 		anumpy = np.ndarray(shape=(4,4), dtype=float, buffer=a)
 
-		dom = B.PDBModel('%spdb' %(settings.MEDIA_ROOT) + str(i) + 'ori.pdb')
+		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + 'ori.pdb')
 		dom = dom.centered()
 		domTrans = dom.transform(anumpy)
-		domTrans.writePdb('%spdb' %(settings.MEDIA_ROOT) + str(i) + '.pdb')
+		domTrans.writePdb('%s/pdb' %(tempDir) + str(i) + '.pdb')
 
 	grabNum = request.POST.get('grabNum')
 
-	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence)
+	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence, rep, tempDir)
 
 	# if the domains have been moved too far away for ranch to create a pool
 	if runPrograms == None:

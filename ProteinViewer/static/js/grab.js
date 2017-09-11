@@ -193,64 +193,8 @@ AFRAME.registerComponent('action', {
       linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
     }
   },
-
-  // onHit: function (evt) {
-  //   var hitEl = evt.detail.el;
-  //   this.hitEl = hitEl;
-  //   // Grab conditions:
-  //   // If the element is already grabbed (it could be grabbed by another controller), can't grab it.
-  //   // If the hand is not grabbing, the element does not stick.
-  //   // If we're already grabbing something you can't grab again.
-  //   if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing) { return; }
-  //   hitEl.addState(this.GRABBED_STATE);
-  //   this.holding = true;
-  //   // attach the entity to the grabbing controller
-  //   this.constraint = new CANNON.LockConstraint(this.el.body, hitEl.body);
-  //   this.physics.world.addConstraint(this.constraint);
-  //   hitEl.emit('grabbed');
-  //   scene = this.el.sceneEl;
-  //   scene.grabbingControllers++;
-  //   // somehow have to know which lines are affected by this move!! Then get rid of
-  //   // this linker affected and put in the line..
-  //   boxes = hitEl.boxes;
-  //   lines = [];
-  //   links = [];
-  //   for(var i=0; i<boxes.length; i++){
-  //     line = boxes[i].getAttribute('line');
-  //     lines.push(line);
-  //     link = boxes[i].getAttribute('link');
-  //     links.push(link);
-  //   }
-  //   this.lines = lines;
-  //   for(var i=0; i<links.length; i++){
-  //     linker = document.getElementById('link' + links[i]);
-  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
-  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
-  //   }
-
-  //   doms = document.querySelectorAll('.domain');
-  //   doms = doms.length;
-  //   domsForStr = doms - 1;
-  //   linkers = document.querySelectorAll('.linker');
-  //   linkers = linkers.length;
-  //   linkersForStr = linkers - 1;
-  //   scene = document.getElementById('scene');
-  //   shift = scene.shift;
-  //   leftover = linkers - shift - doms;
-
-  //   if(hitEl.id == 'dom0' && shift == 1){
-  //     linker = document.getElementById('link0');
-  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
-  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
-  //   }
-  //   if(hitEl.id == 'dom' + domsForStr && leftover == 0){
-  //     linker = document.getElementById('link' + linkersForStr);
-  //     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
-  //     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
-  //   }
-  // },
-
-  tick: function(){
+  
+ tick: function(){
     if(this.holding == true){
       lines = this.lines;
       for(var i=0; i<lines.length; i++){
