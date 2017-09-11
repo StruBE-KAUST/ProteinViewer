@@ -6,7 +6,7 @@ from crispy_forms.bootstrap import StrictButton
 from django import forms
 
 class SubmitViewerDataForm(forms.Form):
-    """Upload a PDB file to view in this app."""
+    """Upload files and information to view in the app."""
 
     sequence = forms.CharField(widget=forms.Textarea())
     pdb_files = forms.FileField(
@@ -14,6 +14,9 @@ class SubmitViewerDataForm(forms.Form):
             attrs={'multiple': True}
             )
         )
+    representation = forms.ChoiceField([
+            ('cartoon', 'Cartoon'),
+            ('surface', 'Surface')])
 
     def __init__(self, *args, **kwargs):
         """Create a new form."""
@@ -26,6 +29,7 @@ class SubmitViewerDataForm(forms.Form):
         self.helper.layout = Layout(
             Field('sequence'),
             Field('pdb_files'),
+            Field('representation'),
             StrictButton(
                 '<span class="ladda-label">View</span>',
                 type="submit",
