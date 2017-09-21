@@ -1,3 +1,5 @@
+<!-- Note: scripts defines on this page cannot be moved because they make reference to the context sent with the render request -->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -9,26 +11,27 @@
     <script src="https://aframe.io/releases/0.5.0/aframe.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-physics-system/master/dist/aframe-physics-system.js"></script>
     <script src="https://rawgit.com/sparksia/aframe-extras/master/dist/aframe-extras.js"></script>
-    <script src="https://unpkg.com/aframe-line-component/dist/aframe-line-component.min.js"></script> 
-    <script src="../../static/js/aframe-physics-collider.js"></script>
-    <script src="../../static/js/aframe-physics-collision-filter.js"></script>
+    <script src="https://unpkg.com/aframe-line-component/dist/aframe-line-component.min.js"></script>
+    {% load static %}
+    <script src={% static "js/aframe-physics-collider.js" %}></script>
+    <script src={% static "js/aframe-physics-collision-filter.js" %}></script>
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
-    <script src="../../static/js/event-state.js"></script>
-    <script src="../../static/js/cookie.js"></script>
+    <script src={% static "js/event-state.js" %}></script>
+    <script src={% static "js/cookie.js" %}></script>
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
+        // prepares and runs call to renderRelative
+
+        scene = document.getElementById('scene');
 
         shift = {{ shift }};
-        scene = document.getElementById('scene');
-        scene.shift = shift;
-
         counts = {{ count }};
         tempDir = "{{ temp }}";
-
+        form_id = "{{ form_id }}"
         req = "{{ request.session }}";
-        console.log(req['temp']);
 
+        scene.shift = shift;
         scene.directory = tempDir;
 
         pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0, 'temp': tempDir};
@@ -37,7 +40,6 @@
           async: true,
           type: 'POST',
           url: "relative/",
-          // headers: {'session': req},
           data: pieces
         }).done(function(data){
           domains = data[1];
@@ -66,25 +68,27 @@
     </script>
     <script>
     function sendNewCoords(grabNum){
-
-      // TODO: Here, when we let go of the grab we want the linkers connected to the moving domain to be replaced by "lines". BUT: "red line" doesn't only mean domains too far; may mean configuration not possible (eg. crossed a domain over a short linker and the linker is too short to form a new connection)
-
-      // only the newly moved domains' linkers vanish, and the lines change colour. But all the linkers will be updated; just that these ones are the ones we'll show "loading". 
+      /*
+        Send coordinates from aframe to pdbs by making an ajax call to aframeData
+        @param grabNum: the number fo times the user moved domains
+        @type grabNum: int
+      */
 
       scene = document.getElementById('scene');
+
       presses = scene.press;
       scene.loading = true;
-
-      rep = {{ rep }};
       tempDir = scene.directory;
 
+      rep = {{ rep }};
+      ranges = {{ ranges }};
+
+      // lines change color to indicate loading
       var lines = document.querySelectorAll('.line');
       for(var i=0; i<lines.length; i++){
         line = document.getElementById('line' + i);
         line.setAttribute('line', 'color', '#ffff00');
       }
-
-      ranges = {{ ranges }};
 
       domRanges = ranges[0];
       allRanges = ranges[1];
@@ -95,6 +99,7 @@
 
       var pass = {};
 
+      // get the matrix describing each domain's new position and rotation
       for(var i=0; i<num; i++){
         pos = domains[i].getAttribute('position');
         mat = new THREE.Matrix4;
@@ -141,16 +146,12 @@
         data: pass
       }).done(function(msg) {
 
-        console.log('done return call');
-        // if the configuration is not possible, turn the lines red. If it works, set the lines back to length 0 and put in the linkers.
         scene = document.getElementById('scene');
         presses = scene.press;
-        console.log(presses);
-        console.log(msg);
         grabNum = msg[1];
         tempDir = scene.directory;
 
-
+        // if the configuration is not possible, turn the lines red. Otherwise, set the lines back to length 0 and put in the linkers.
         if(msg[0] == presses && msg[2] == null){
           for(var i=0; i<lines.length; i++){
             line = document.getElementById('line' + i);
@@ -158,6 +159,7 @@
             scene.loading = false;
           }
         } else if(msg[0] == presses) {
+          // this if is necessary to make sure the linkers from only the last move is loaded
           pieces = {'domains': 0, 'linkers': JSON.parse(msg[3]), 'grabNum': grabNum, 'presses': presses, 'temp': tempDir};
           $.ajax({
             async: true,
@@ -169,12 +171,9 @@
 
             presses = data[0];
             domains = data[1];
-            linkers = data[2];
+            linkers = data[2]; 
 
-            console.log('after relative');
-            console.log(presses);
-            console.log(scene.press);   
-
+            // reset lines
             if(presses == scene.press){
               for(var i=0; i<lines.length; i++){
                 line = document.getElementById('line' + i);
@@ -183,6 +182,7 @@
                 line.setAttribute('line', 'end', '0 0 0');
               }
 
+              // load linkers
               for(var i=0; i<linkers.length; i++){
                 pos = JSON.parse(linkers[i]);
                 posStr = pos[0] + " " + pos[1] + " " + pos[2];
@@ -200,11 +200,11 @@
       });
     }
     </script>
-    <script src="../../static/js/follow.js"></script>
-    <script src="../../static/js/stuck.js"></script>
-    <script src="../../static/js/grab.js"></script>
-    <script src="../../static/js/react.js"></script>
-    <script src="../../static/js/THREE.MeshLine.js"></script>
+    <script src={% static "js/follow.js" %}></script>
+    <script src={% static "js/stuck.js" %}></script>
+    <script src={% static "js/grab.js" %}></script>
+    <script src={% static "js/react.js" %}></script>
+    <!-- <script src={% static "js/THREE.MeshLine.js" %}></script> -->
   </head>
 
   <body>
@@ -212,7 +212,6 @@
 
   <a-scene id="scene" physics="debug: true; gravity: 0" stats debug>
     <a-assets>
-      <img id="gif" src="../../static/img/loading.gif"></img>
       <a-mixin id = "controller" action event-state></a-mixin>
       <a-mixin id = "controller-loaded" 
                  static-body="shape: sphere; sphereRadius: 0.05;" 
@@ -239,7 +238,7 @@
     <!-- Get the entities that were built in views.py -->
     {{ entities |safe }}
 
-    <!-- make them "stuck" to an invisible box at the center -->
+    <!-- Box that acts as the center; entities "stick" to it -->
     <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: default"></a-box>
 
 
@@ -247,7 +246,8 @@
 
 
     <!-- Hull, Collada model -->
-    <!-- Trying to use other object as collider! -->
+
+    <!-- TODO: Use as referance when using hull colliders; need to use hull models in dae format for best results -->
 
     <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
     <!-- <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity> -->
@@ -259,24 +259,14 @@
     <a-entity class="model" id="clear" mixin="cube" material="color: red; opacity: 0; transparent: true" position="0 1 1"></a-entity> -->
 
 
-    <!-- Sticky Boxes! -->
-    <!-- <a-entity class="model" id="red" mixin="cube" material="color: red" position="0 1 -1"></a-entity> -->
-    <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1.6 -1"></a-entity> -->
-    <!-- <a-entity class="model" id="green" mixin="cube" material="color: green" position="0 1 1" collision-filter="group: red; collidesWith: default, red"></a-entity> -->
-
-    <!-- Sticky Molecules! -->
-    <!-- <a-entity class="model" mixin="molecule" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1" collision-filter="group: blue; collidesWith: default"></a-entity> -->
-    <!-- <a-entity class="model" mixin="molecule" obj-model="obj: #model2; mtl: #mat2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red"></a-entity> -->
-
-
     <!-- Skybox (background) -->
-    <a-sky src="../../static/img/skybox.jpg"></a-sky>
+    <a-sky src={% static "img/skybox.jpg" %}></a-sky>
 
-    <!-- <a-grid static-body collision-filter="group: default; collidesWith: red, green" position="0 -10 0"></a-grid> -->
 
     <!-- HTC Vive controllers! -->
 
     <!-- TODO: Turn on raycasters when hulls are in use; to see if we're "inside" a collider. -->
+
     <a-entity class="cont" id="left" mixin="controller" vive-controls="hand: left">
       <!-- <a-entity class="ray" id="1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 180 0" react></a-entity> -->
       <!-- <a-entity class="ray" id="2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1" raycaster="objects: .collider" material="opacity: 0; transparent: true" rotation="0 0 0" react></a-entity> -->

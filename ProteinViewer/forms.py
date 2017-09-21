@@ -4,8 +4,9 @@ from crispy_forms.layout import Layout, Field
 from crispy_forms.bootstrap import StrictButton
 
 from django import forms
+from models import DbEntry
 
-class SubmitViewerDataForm(forms.Form):
+class SubmitViewerDataForm(forms.ModelForm):
     """Upload files and information to view in the app."""
 
     sequence = forms.CharField(widget=forms.Textarea())
@@ -15,8 +16,12 @@ class SubmitViewerDataForm(forms.Form):
             )
         )
     representation = forms.ChoiceField([
-            ('cartoon', 'Cartoon'),
-            ('surface', 'Surface')])
+            ('newcartoon', 'Cartoon'),
+            ('surf', 'Surface')])
+
+    class Meta:
+        model = DbEntry
+        fields = ('sequence','pdb_files', 'representation')
 
     def __init__(self, *args, **kwargs):
         """Create a new form."""

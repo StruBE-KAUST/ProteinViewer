@@ -1,0 +1,22 @@
+## Unreleased
+
+### Added:
+	- Changelog file
+	- Allow users to choose the representation (surf/newcartoon)
+	- Use django models to save data to database on post
+	- Redirect after post to avoid repeat posts 
+	- Use of form_id and session id to make sure files are accessed by the correct user
+	- Form data is processed after redirect
+	- Documentation for code and removal of most dead code. Use of helper functions when single functions became too long/complex
+
+### Changed:
+	- In viewer.html, changed access to static files
+
+
+## v1.0 11/09/2017
+
+### Initial release; mvp. Includes:
+	- Form for user to upload sequence and pdb files
+	- Process inputs, then run Ranch, Pulchra and VMD to produce .obj files for all the domains and linkers
+	- Client-side code to use information passed from the server to place these models relative to one another
+	- Code to allow users to move domains, and use the new domain positions to produce new linkers

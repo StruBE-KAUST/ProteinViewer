@@ -1,4 +1,4 @@
-// set up csrf for POST requests:
+// set up csrf for POST requests: (from django docs)
 $(function(){
   function getCookie(name) {
     var cookieValue = null;

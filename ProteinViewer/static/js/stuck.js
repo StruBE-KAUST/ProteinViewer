@@ -1,4 +1,8 @@
 AFRAME.registerComponent('stuck', {
+  /*
+    This component stops objects from floating away due to zero gravity.
+    Also stops them from moving further than release point when "thrown"
+  */
 
   init: function () {
     // Bind event handlers
@@ -21,6 +25,8 @@ AFRAME.registerComponent('stuck', {
 
   onGrab: function (evt) {
     if(this.el.sceneEl.startup == true){
+      // when a controller is grabbed for the first time, stick all elements to
+      // the invisible box at the center and make cartoons follow their hull colliders
       var els = this.el.sceneEl.querySelectorAll('.domain');
       var self = this;
       this.el.sceneEl.startup = false;
@@ -39,12 +45,14 @@ AFRAME.registerComponent('stuck', {
   },
 
   onRelease: function (evt) {
+    // When an element is released from a controller, stick it immediately to the center box again
     var el = this.el;
     this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
     this.physics.world.addConstraint(this.constraint);
   },
 
   go: function() {
+    // stick elements to the center (called when stick is emitted)
     var el = this.el;
     this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
     this.physics.world.addConstraint(this.constraint);

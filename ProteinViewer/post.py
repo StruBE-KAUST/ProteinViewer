@@ -1,1 +1,0 @@
-# Split the function in views.py here; first part (sending the data with the post request)

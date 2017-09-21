@@ -1,1 +1,0 @@
-# Split the function in views.py here; second part (getting the data and running getLinker)

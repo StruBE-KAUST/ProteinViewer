@@ -1,4 +1,7 @@
 AFRAME.registerComponent('event-state', {
+  /*
+    Makes sure that the controller is loaded before physics systems are attached
+  */
   schema: { 
     event: { default: 'model-loaded' }, 
     state: { default: 'loaded' }

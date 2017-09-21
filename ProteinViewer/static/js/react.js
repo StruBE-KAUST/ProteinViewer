@@ -1,19 +1,18 @@
 AFRAME.registerComponent('react', {
-  // this class is needed for the hull colliders because the aframe-physics
-  // system does not yet have the feature of registering a hit event from within
-  // a convex hull collider; it only fires events on the surface. This and the
-  // associated raycasters can be removed once aframe-physics-system is updated
-  // with this feature.
+  /*
+    This component is needed for the hull colliders. The aframe-physics system 
+    does not register a hit event from within a convex hull collider; 
+    it only fires events on the surface. This and the associated raycasters 
+    can be removed once aframe-physics-system is updated with this feature.
+  */
     dependencies: ['raycaster'],
 
   init: function () {
     // bind the event handlers
      this.onHit = this.onHit.bind(this);
      this.onMiss = this.onMiss.bind(this);
-     // using the parent el so that the two raycasters on each conroller work
-     // together; they are not independant. Only when both front and back are
-     // true (front activated by one racaster and back activated by the other),
-     // do we register a "hit"
+     // using the parent el so that the two raycasters on each controller work
+     // together. Only when both front and back are true we register a "hit"
      this.el.parentEl.front = false;
      this.el.parentEl.back = false;
   },
@@ -27,8 +26,7 @@ AFRAME.registerComponent('react', {
   onHit: function (evt) {
     var up = this.el.parentEl;
     // the raycaster "passes through" elements and hits everything in its path
-    // so we take the first element only because this is the closest element that
-    // it hits
+    // so we take the first element only
     var el = evt.detail.els[0]; 
     if(el.className == "domain"){
       // id 1 points backwards, id 2 points forwards. If a hit event is fired

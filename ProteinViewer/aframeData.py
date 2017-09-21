@@ -1,3 +1,8 @@
+"""
+Put the domains' new positions (after a user moved them) into pdb files for
+use in ranch. 
+"""
+
 import Biskit as B 
 import json
 from django.http import HttpResponse
@@ -14,56 +19,45 @@ from .apps import MeshlabConfig
 
 from getLinker import getLinker
 
-def returnData(request):
-	# saves new coordinates of the domains in aframe to pdb files
+from models import DbEntry
 
-	# first, parse the incoming lists from strings back to lists
-	domStr = request.POST.get('domRanges')
-	allStr = request.POST.get('allRanges')
-	sequence = request.POST.get('sequence')
-	presses = request.POST.get('presses')
-	rep = request.POST.get('rep')
-	tempDir = request.POST.get('temp')
 
-	print 'in return'
-	key = request.session.session_key
-	print key
-	temp = request.session['temp']
-	print temp
+def strParser(inputStr):
+	"""
+	Parse json string into list of lists
+	@param inputStr: the list of lists as a json string
+	@type inputStr: string
+	"""
 
-	domEls = map(int, domStr.split(','))
-	domRanges = []
-	domTemp = []
-	for i in xrange(len(domEls)):
+	els = map(int, inputStr.split(','))
+	ranges = []
+	temp = []
+
+	# parse domRanges
+	for i in xrange(len(els)):
 		if i % 2 == 0:
-			domTemp.append(domEls[i])
+			temp.append(els[i])
 		else:
-			domTemp.append(domEls[i])
-			domRanges.append(domTemp)
-			domTemp = []
+			temp.append(els[i])
+			ranges.append(temp)
+			temp = []
 
-	allEls = map(int, allStr.split(','))
-	allRanges = []
-	allTemp = []
-	for i in xrange(len(allEls)):
-		if i % 2 == 0:
-			allTemp.append(allEls[i])
-		else:
-			allTemp.append(allEls[i])
-			allRanges.append(allTemp)
-			allTemp = []
+	return ranges
 
-	domains = len(domRanges)
-	matrices = []
-
-	for i in xrange(domains):
-		mat = request.POST.get('mat' + str(i))
-		matrices.append(mat)
-
+def transformPdb(matrices, domains, tempDir):
+	"""
+	Convert each matrix string to a matrix, then use to transform the
+	pdbs and save as new pdbs
+	@param matrices: list of strings
+	@type matrices: list
+	@param domains: number of domains in the molecule
+	@type domains: int
+	@param tempDir: directory for the user
+	@type tempDir: unicode
+	"""
 	for i in xrange(domains):
 		a = matrices[i]
 		a = a.split(',')
-
 		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + '.pdb')
 		center = dom.center()
 
@@ -74,7 +68,7 @@ def returnData(request):
 			else:
 				a[j] = float(a[j])*20 + center[index]
 				index = index + 1
- 
+	
 		asubbed = []
 		atemp = []
 		
@@ -88,25 +82,64 @@ def returnData(request):
 		a = np.array(asubbed)
 		anumpy = np.ndarray(shape=(4,4), dtype=float, buffer=a)
 
+		# use the matrice on the pdb files and save as new pdbs
 		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + 'ori.pdb')
 		dom = dom.centered()
 		domTrans = dom.transform(anumpy)
 		domTrans.writePdb('%s/pdb' %(tempDir) + str(i) + '.pdb')
 
+
+def returnData(request, form_id):
+	"""
+	saves new coordinates of the domains in aframe to pdb files
+	@param form_id: the form id taken from the request url
+	@param type: unicode
+	"""
+
+	# check if session matches user
+	obj = DbEntry.objects.get(form_id = form_id)
+	session = request.session.session_key
+
+	origin = obj.sessionId
+	
+	if origin != session:
+		print 'oops'
+		# TODO: return a different error, showing that session doesn't match user
+		return HttpResponseNotFound('<h1>Page not found</h1>')
+
+	# first, parse the incoming lists from json strings back to lists
+	domStr = request.POST.get('domRanges')
+	allStr = request.POST.get('allRanges')
+	sequence = request.POST.get('sequence')
+	presses = request.POST.get('presses')
+	rep = request.POST.get('rep')
+	tempDir = request.POST.get('temp')
 	grabNum = request.POST.get('grabNum')
 
+	domRanges = strParser(domStr)
+	allRanges = strParser(allStr)
+
+	domains = len(domRanges)
+	matrices = []
+
+	for i in xrange(domains):
+		mat = request.POST.get('mat' + str(i))
+		matrices.append(mat)
+
+	transformPdb(matrices, domains, tempDir)
+
+
+	# use getLinker to run ranch, pulchra etc. to get new linker
 	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence, rep, tempDir)
 
-	# if the domains have been moved too far away for ranch to create a pool
 	if runPrograms == None:
+		# the domains have been moved too far away for ranch to create a pool
 		json_output = json.dumps([presses, grabNum, runPrograms])
-		print json_output
 		return HttpResponse(json_output, content_type="application/json")
 
 	linkers = len(allRanges) - len(domRanges)
 	domains = len(domRanges)
 
 	json_array = json.dumps([presses, grabNum, domains, linkers])
-	print json_array
 
 	return HttpResponse(json_array, content_type="application/json")
