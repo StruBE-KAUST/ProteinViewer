@@ -20,6 +20,8 @@ from .apps import MeshlabConfig
 from getLinker import getLinker
 
 from models import DbEntry
+from django.http import HttpResponseForbidden
+
 
 
 def strParser(inputStr):
@@ -103,9 +105,7 @@ def returnData(request, form_id):
 	origin = obj.sessionId
 	
 	if origin != session:
-		print 'oops'
-		# TODO: return a different error, showing that session doesn't match user
-		return HttpResponseNotFound('<h1>Page not found</h1>')
+		return HttpResponseForbidden()
 
 	# first, parse the incoming lists from json strings back to lists
 	domStr = request.POST.get('domRanges')

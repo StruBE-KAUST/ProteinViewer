@@ -12,11 +12,9 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import signal
 import threading
-from .apps import VMDConfig
-from .apps import MeshlabConfig
+from .apps import CalledAppsConfig
 
 from threading import _Timer
-
 
 import Biskit as B
 import time
@@ -38,6 +36,8 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):
 	@param tempDir: the temporary directory where user's files are stored
 	@type tempDir: str
 
+	@return [domCount, linkCount]: a list holding the number of domains and linkers
+	@rtype: list [int, int]
 	"""
 
 	# create input string for ranch
@@ -123,12 +123,14 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):
 	ranchtime = endtime - starttime
 	print 'Ranch takes ' + str(ranchtime) + ' to run'
 
-	pulchraInput = '/Applications/pulchra304/bin/pulchra %s/00001eom.pdb' %(tempDir)
+	pulchrapath = CalledAppsConfig().pulchrapath
+
+	pulchraInput = ' %s/00001eom.pdb' %(tempDir)
 	# runs pulchra with pdb from ranch
 	pulchra = subprocess.Popen(pulchraInput, shell=True)
 	pulchra.wait()
 
-	m = B.PDBModel('%s/00001eom.rebuilt.pdb' %(tempDir))
+	m = B.PDBModel('%s %s/00001eom.rebuilt.pdb' %(pulchrapath, tempDir))
 	if new == True:
 		m = m.centered()
 
@@ -158,8 +160,8 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):
 		print pdb_name
 		piece.writePdb(pdb_name)
 			
-	vmdpath = VMDConfig().vmdpath
-	meshpath = MeshlabConfig().meshpath
+	vmdpath = CalledAppsConfig().vmdpath
+	meshpath = CalledAppsConfig().meshpath
 
     # runs vmd to turn pdbs into .objs
 	if new == True:
@@ -167,14 +169,14 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):
 		for i in xrange(domCount):
 			pdb_name = 'dom' + str(i) + '.pdb'
 			obj_name = 'dom' + str(i) + '.obj'
-			vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
+			vmd = subprocess.Popen('cd %s' %(vmdpath), shell=True, stdin=PIPE)
 			vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %s/%s \n quit \n' %(tempDir, pdb_name, rep, tempDir, obj_name))
 			vmd.wait()
 
 	for i in xrange(linkCount):
 		pdb_name = 'link' + str(i) + '.' + str(grabNum) + '.pdb'
 		obj_name = 'link' + str(i) + '.' + str(grabNum) + '.obj'
-		vmd = subprocess.Popen('cd %s && ./startup.command -dispdev none' %(vmdpath), shell=True, stdin=PIPE)
+		vmd = subprocess.Popen('cd %s' %(vmdpath), shell=True, stdin=PIPE)
 		vmd.communicate(input=b'\n axes location off \n mol new %s/%s \n mol rep %s \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront %s/%s \n quit \n' %(tempDir, pdb_name, rep, tempDir, obj_name))
 		vmd.wait()
 

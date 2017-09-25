@@ -17,6 +17,8 @@ from subprocess import Popen, PIPE, STDOUT
 import logging
 
 from models import DbEntry
+from django.http import HttpResponseForbidden
+
 
 def renderRelative(request, form_id):
 	"""
@@ -31,9 +33,7 @@ def renderRelative(request, form_id):
 	origin = obj.sessionId
 	
 	if origin != session:
-		print 'oops'
-		# TODO: return a different error, showing that session doesn't match user
-		return HttpResponseNotFound('<h1>Page not found</h1>')
+		return HttpResponseForbidden()
 
 
 	log = logging.getLogger(__name__)

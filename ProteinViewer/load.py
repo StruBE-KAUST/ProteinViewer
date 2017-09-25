@@ -17,6 +17,8 @@ import re
 from getLinker import getLinker
 from views import SubmitPdbFileView
 
+from django.http import HttpResponseForbidden
+
 
 def findDoms(pdbs, tempDir, sequence):
 	"""
@@ -27,6 +29,9 @@ def findDoms(pdbs, tempDir, sequence):
 	@type tempDir: string
 	@param sequence: the sequence for the file
 	@type sequence: string
+
+	@return domRanges: the residue ranges for each domain
+	@rtype domRanges: list of lists
 	"""
 
 	domRanges = []
@@ -50,6 +55,9 @@ def findAll(domRanges, sequence):
 	@type: list
 	@param sequence: the sequence for the file
 	@type: string
+
+	@return allRanges: residue ranges for all domains and linkers
+	@rtype: list of lists
 	"""
 
 	prev = 0
@@ -106,6 +114,8 @@ def getBoxDeets(domRanges, linkRanges, allRanges):
 	@type: linkRanges: list
 	@param: allRanges: the residue ranges for all domains and linkers
 	@type: allRanges: list
+
+	@return boxDeets: list of the x,y,z positions of all the 
 	"""
 
 	# remove trailing linkers from linkRanges, keeping track of leading ones 
@@ -160,6 +170,13 @@ def getBoxDeets(domRanges, linkRanges, allRanges):
 
 
 def load(request, form_id):
+	"""
+	Uses the user-entered values to get the residue ranges, then calls getLinker.
+	Returns the viewer page with values in the context
+	@param request: the request from views.py
+	@param form_id: the unique identifier for the form
+	@type form_id: string
+	"""
 
 	# check if session matches user
 	obj = DbEntry.objects.get(form_id = form_id)
@@ -168,9 +185,7 @@ def load(request, form_id):
 	origin = obj.sessionId
 	
 	if origin != session:
-		print 'oops'
-		# TODO: return a different error, showing that session doesn't match user
-		return HttpResponseNotFound('<h1>Page not found</h1>')
+		return HttpResponseForbidden()
 
 	pdbs = obj.pdbs
 	rep = obj.rep.encode('ascii')
@@ -233,7 +248,6 @@ def load(request, form_id):
 
 	# create the box entities,and relate them to the domains, lines and linkers
 	# that they are associated with
-	lineNum = 0
 	for i in xrange(len(boxDeets)):
 	    box = ""
 	    if i % 2 == 0:
