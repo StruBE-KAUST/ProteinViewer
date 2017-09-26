@@ -125,12 +125,12 @@ def getLinker(domRanges, allRanges, new, grabNum, sequence, rep, tempDir):
 
 	pulchrapath = CalledAppsConfig().pulchrapath
 
-	pulchraInput = ' %s/00001eom.pdb' %(tempDir)
+	pulchraInput = '%s %s/00001eom.pdb' %(pulchrapath, tempDir)
 	# runs pulchra with pdb from ranch
 	pulchra = subprocess.Popen(pulchraInput, shell=True)
 	pulchra.wait()
 
-	m = B.PDBModel('%s %s/00001eom.rebuilt.pdb' %(pulchrapath, tempDir))
+	m = B.PDBModel('%s/00001eom.rebuilt.pdb' %(tempDir))
 	if new == True:
 		m = m.centered()
 

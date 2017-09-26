@@ -14,8 +14,7 @@ import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
-from .apps import VMDConfig
-from .apps import MeshlabConfig
+from .apps import CalledAppsConfig
 
 from getLinker import getLinker
 

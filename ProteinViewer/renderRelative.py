@@ -6,8 +6,7 @@ still be manipulated per piece
 
 import Biskit as B
 from django.conf import settings
-from .apps import VMDConfig
-from .apps import MeshlabConfig
+from .apps import CalledAppsConfig
 import json
 from django.http import HttpResponse
 

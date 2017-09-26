@@ -123,5 +123,4 @@ class SubmitPdbFileView(View):
         post.sequence = sequence
         post.save()
 
-        return HttpResponseRedirect(reverse("ProteinViewer:load", kwargs={'form_id': temp}))
-        # TODO: Create intermediate page that tells user it's loading..?
+        return HttpResponseRedirect(reverse("ProteinViewer:intermediate", kwargs={'form_id': temp}))

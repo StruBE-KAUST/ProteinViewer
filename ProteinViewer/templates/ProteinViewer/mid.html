@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="Expires" content="-1">
+	<meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+	<script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+	{% load static %}
+	<script src={% static "js/cookie.js" %}></script>
+	<script>
+	  $(function(){
+	    $.ajax({
+	      async: true,
+	      type: 'GET',
+	      url: "load/"
+	    }).done(function(data){
+	      console.log('ended');
+	      document.write(data);
+	      document.close();
+	    });
+	  });      
+	</script>
+	</head>
+	<body>
+		"Loading"
+	</body>
+</html>

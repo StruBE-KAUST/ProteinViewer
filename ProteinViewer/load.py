@@ -9,6 +9,7 @@ from django.conf import settings
 from ast import literal_eval
 
 from django.http import HttpResponseNotFound
+from django.http import HttpResponseForbidden
 
 import time
 import Biskit as B
@@ -16,9 +17,6 @@ import re
 
 from getLinker import getLinker
 from views import SubmitPdbFileView
-
-from django.http import HttpResponseForbidden
-
 
 def findDoms(pdbs, tempDir, sequence):
 	"""
@@ -95,7 +93,7 @@ def findAll(domRanges, sequence):
 	return allRanges
 
 
-def getBoxDeets(domRanges, linkRanges, allRanges):
+def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
 	"""
 	Use the domain-linker pattern to determine which domains the boxes (which
 	indicate the domain-linker boundary) will follow. There are 4 cases:
@@ -111,9 +109,11 @@ def getBoxDeets(domRanges, linkRanges, allRanges):
 	@param domRanges: the residue ranges for all domains
 	@type domRanges: list
 	@param linkRanges: the residue ranges for all linkers
-	@type: linkRanges: list
-	@param: allRanges: the residue ranges for all domains and linkers
-	@type: allRanges: list
+	@type linkRanges: list
+	@param allRanges: the residue ranges for all domains and linkers
+	@type allRanges: list
+	@param tempDir: directory to get files from
+	@type tempDir: string
 
 	@return boxDeets: list of the x,y,z positions of all the 
 	"""
@@ -128,6 +128,8 @@ def getBoxDeets(domRanges, linkRanges, allRanges):
 
 	startPos = []
 	endPos = []
+
+	domains = len(domRanges)
 
 	# get the position of the start and end residues of each domain
 	for i in xrange(domains):
@@ -164,7 +166,7 @@ def getBoxDeets(domRanges, linkRanges, allRanges):
 	        boxDeets.append([startPos[0], domNum])
 	        startPos.remove(startPos[0])
 
-	print boxDeets
+	return {'linkShift': linkShift, 'boxDeets': boxDeets}
 
 
 
@@ -174,6 +176,7 @@ def load(request, form_id):
 	Uses the user-entered values to get the residue ranges, then calls getLinker.
 	Returns the viewer page with values in the context
 	@param request: the request from views.py
+	@type request: django request
 	@param form_id: the unique identifier for the form
 	@type form_id: string
 	"""
@@ -218,7 +221,9 @@ def load(request, form_id):
 	    else: 
 	        linkRanges.append(i)
 
-	boxDeets = getBoxDeets(domRanges, linkRanges, allRanges, tempDir)
+	deets = getBoxDeets(domRanges, linkRanges, allRanges, tempDir)
+	linkShift = deets['linkShift']
+	boxDeets = deets['boxDeets']
 
 	asset_string = ""
 	entity_string = ""
@@ -246,6 +251,7 @@ def load(request, form_id):
 	    asset_string = asset_string + assets
 	    entity_string = entity_string + entities
 
+	linkNum = 0
 	# create the box entities,and relate them to the domains, lines and linkers
 	# that they are associated with
 	for i in xrange(len(boxDeets)):
@@ -262,6 +268,8 @@ def load(request, form_id):
 	for i in xrange(lineCount):
 	    line = '<a-entity id="line' + str(i) + '" class="line" line="start: 0 0 0; end: 0 0 0; color: #00ff00" startbox="box' + str(i*2) + '" endbox="box' + str(i*2+1) + '"></a-entity>'
 	    entity_string = entity_string + line
+
+	ranges = [domRanges, linkRanges]
 
 	# create context for the render request
 	context = {'assets': asset_string, 'entities': entity_string, 'count': pieces, 'ranges': ranges, 'lines': lineCount, 'shift': linkShift, 'rep': rep, 'temp': tempDir, 'form_id': form_id}
