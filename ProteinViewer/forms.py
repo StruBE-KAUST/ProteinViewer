@@ -4,7 +4,7 @@ from crispy_forms.layout import Layout, Field
 from crispy_forms.bootstrap import StrictButton
 
 from django import forms
-from models import DbEntry
+from models import ViewingSession
 
 class SubmitViewerDataForm(forms.ModelForm):
     """Upload files and information to view in the app."""
@@ -20,7 +20,7 @@ class SubmitViewerDataForm(forms.ModelForm):
             ('surf', 'Surface')])
 
     class Meta:
-        model = DbEntry
+        model = ViewingSession
         fields = ('sequence','pdb_files', 'representation')
 
     def __init__(self, *args, **kwargs):

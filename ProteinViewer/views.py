@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.urls import reverse
-from django.core.urlresolvers import reverse
 from django.views.generic import View
 from django.contrib import messages
 from django.conf import settings
@@ -11,16 +10,7 @@ from .forms import SubmitViewerDataForm
 import logging
 import os
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
 import tempfile
-import shutil
-import json
-
-from getLinker import getLinker
-
-import Biskit as B
-import re
-import time
 
 class SubmitPdbFileView(View):
     """Main view to render the form if GET or error in POST
@@ -91,17 +81,17 @@ class SubmitPdbFileView(View):
             request.session.create()
             request.session.save()
 
-        print request.session.session_key
+        session = request.session.session_key
 
         rep = request.POST['representation']
 
-        tempDir = tempfile.mkdtemp(prefix="user_", dir=settings.MEDIA_ROOT)
-        temp = tempDir[len(settings.MEDIA_ROOT):len(tempDir)]
+        temp_directory = tempfile.mkdtemp(prefix="user_", dir=settings.MEDIA_ROOT)
+        form_id = temp_directory[len(settings.MEDIA_ROOT):len(temp_directory)]
 
         # PDB files are stored in the created temporary directory 
 
         for count, u_file in enumerate(request.FILES.getlist('pdb_files')):
-            with open(os.path.join(tempDir, 'pdb' + str(count) + '.pdb'), 'wb+') as destination:
+            with open(os.path.join(temp_directory, 'pdb' + str(count) + '.pdb'), 'wb+') as destination:
                 for chunk in u_file:
                     destination.write(chunk)
 
@@ -109,18 +99,21 @@ class SubmitPdbFileView(View):
         # upload the whole fasta file including that top line with the >
         sequence = request.POST['sequence']
 
-        with open(os.path.join(tempDir, 'sequence.fasta'), 'wb+') as destination:
+        with open(os.path.join(temp_directory, 'sequence.fasta'), 'wb+') as destination:
             for chunk in request.POST['sequence']:
                 destination.write(chunk)
 
         pdbs = len(request.FILES.getlist('pdb_files'))
 
         post = form.save(commit=False)
-        post.sessionId = request.session.session_key
-        post.form_id = temp
-        post.pdbs = pdbs
-        post.rep = rep
+        post.form_id = form_id
+        post.session_id = session
+        post.number_of_domains = pdbs
+        post.representation = rep
         post.sequence = sequence
+        post.temporary_directory = temp_directory
         post.save()
 
-        return HttpResponseRedirect(reverse("ProteinViewer:intermediate", kwargs={'form_id': temp}))
+        subprocess.Popen('python manage.py loadview ' + form_id + ' ' + session, shell=True)
+
+        return HttpResponseRedirect(reverse("ProteinViewer:intermediate", kwargs={'form_id': form_id}))

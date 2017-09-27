@@ -21,20 +21,23 @@
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
+
         // prepares and runs call to renderRelative
 
         scene = document.getElementById('scene');
 
         shift = {{ shift }};
-        counts = {{ count }};
+        domains = {{ numDomains }};
+        linkers = {{ numLinkers }};
         tempDir = "{{ temp }}";
         form_id = "{{ form_id }}"
-        req = "{{ request.session }}";
 
         scene.shift = shift;
         scene.directory = tempDir;
 
-        pieces = {'domains': counts[0], 'linkers': counts[1], 'grabNum': 0, 'temp': tempDir};
+        pieces = {'domains': domains, 'linkers': linkers, 'grabNum': 0, 'temp': tempDir};
+
+        console.log('before ajax');
 
         $.ajax({
           async: true,
@@ -42,6 +45,9 @@
           url: "relative/",
           data: pieces
         }).done(function(data){
+
+          console.log('after ajax');
+
           domains = data[1];
           linkers = data[2];
           scene.domPositions = {};
@@ -81,7 +87,6 @@
       tempDir = scene.directory;
 
       rep = {{ rep }};
-      ranges = {{ ranges }};
 
       // lines change color to indicate loading
       var lines = document.querySelectorAll('.line');
@@ -90,8 +95,8 @@
         line.setAttribute('line', 'color', '#ffff00');
       }
 
-      domRanges = ranges[0];
-      allRanges = ranges[1];
+      domRanges = {{ domRanges }};
+      allRanges = {{ allRanges }};
 
       var domains = document.querySelectorAll('.domain');
       var num = domains.length;

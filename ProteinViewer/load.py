@@ -4,7 +4,9 @@ and returns the viewer page
 """
 
 from django.shortcuts import render
-from models import DbEntry
+from models import ViewingSession
+from models import Linker
+from models import Domain
 from django.conf import settings
 from ast import literal_eval
 
@@ -16,7 +18,8 @@ import Biskit as B
 import re
 
 from getLinker import getLinker
-from views import SubmitPdbFileView
+from subprocess import Popen, PIPE, STDOUT
+
 
 def findDoms(pdbs, tempDir, sequence):
 	"""
@@ -120,11 +123,13 @@ def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
 
 	# remove trailing linkers from linkRanges, keeping track of leading ones 
 	linkShift = 0
-	if linkRanges[0] == allRanges[0]:
-	    linkRanges.remove(linkRanges[0])
+	linkR = list(linkRanges)
+
+	if linkR[0] == allRanges[0]:
+	    linkR.remove(linkR[0])
 	    linkShift = 1
-	if linkRanges[len(linkRanges) - 1] == allRanges[len(allRanges) - 1]:
-	    linkRanges.remove(linkRanges[len(linkRanges) - 1])
+	if linkR[len(linkR) - 1] == allRanges[len(allRanges) - 1]:
+	    linkR.remove(linkR[len(linkR) - 1])
 
 	startPos = []
 	endPos = []
@@ -155,7 +160,7 @@ def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
 
 	boxDeets = []
 
-	for i in xrange(len(linkRanges)*2):
+	for i in xrange(len(linkR)*2):
 	    if i % 2 == 0:
 	        # if even, take endpos and link to domain number
 	        boxDeets.append([endPos[0], domNum])
@@ -171,7 +176,7 @@ def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
 
 
 
-def load(request, form_id):
+def load(form_id, session):
 	"""
 	Uses the user-entered values to get the residue ranges, then calls getLinker.
 	Returns the viewer page with values in the context
@@ -182,18 +187,18 @@ def load(request, form_id):
 	"""
 
 	# check if session matches user
-	obj = DbEntry.objects.get(form_id = form_id)
-	session = request.session.session_key
+	obj = ViewingSession.objects.get(form_id = form_id)
 
-	origin = obj.sessionId
+	origin = obj.session_id
 	
 	if origin != session:
 		return HttpResponseForbidden()
 
-	pdbs = obj.pdbs
-	rep = obj.rep.encode('ascii')
+	# form id & session already have
+
+	pdbs = obj.number_of_domains
+	rep = obj.representation.encode('ascii')
 	sequence = obj.sequence.encode('ascii')
-	form_id = form_id.encode('ascii')
 	tempDir = settings.MEDIA_ROOT + form_id
 
 	starttime = time.time()
@@ -204,10 +209,14 @@ def load(request, form_id):
 	
 	if pieces == 0: 
 		# ranch was killed; domains too far apart
-	    response = self.render_form(request, form)
+	    # response = self.render_form(request, form)
 	    # TODO: Go back to the form and make the user upload new domains
-	    messages.error(request, "Domains are too far apart!")
-	    return response
+	    # messages.error(request, "Domains are too far apart!")
+	    # return response
+	    obj.process_status = -1
+	    obj.save()
+
+	    return
 
 	domains = pieces[0]
 	linkers = pieces[1]
@@ -272,11 +281,28 @@ def load(request, form_id):
 	ranges = [domRanges, linkRanges]
 
 	# create context for the render request
-	context = {'assets': asset_string, 'entities': entity_string, 'count': pieces, 'ranges': ranges, 'lines': lineCount, 'shift': linkShift, 'rep': rep, 'temp': tempDir, 'form_id': form_id}
+	# context = {'assets': asset_string, 'entities': entity_string, 'count': pieces, 'ranges': ranges, 'lines': lineCount, 'shift': linkShift, 'rep': rep, 'temp': tempDir, 'form_id': form_id}
 
 	endtime = time.time()
 
 	wholetime = endtime - starttime
 	print 'Whole process takes ' + str(wholetime) + ' to run'
 
-	return render(request, 'ProteinViewer/viewer.html', context)
+	for dom in domRanges:
+		newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=obj)
+		newDomain.save()
+
+	for link in linkRanges:
+		newLinker = Linker(first_residue_number=link[0], last_residue_number=link[1], viewing_session=obj)
+		newLinker.save()
+
+	obj.process_status = 1
+	obj.asset_string = asset_string
+	obj.entity_string = entity_string
+	obj.shifted_for_linker = linkShift
+	obj.number_of_linkers = len(linkRanges)
+	obj.save()
+
+	return
+
+	# return render(request, 'ProteinViewer/viewer.html', context)

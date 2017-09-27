@@ -8,15 +8,15 @@ import Biskit as B
 from django.conf import settings
 from .apps import CalledAppsConfig
 import json
-from django.http import HttpResponse
 
 import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import logging
 
-from models import DbEntry
+from models import ViewingSession
 from django.http import HttpResponseForbidden
+from django.http import HttpResponse
 
 
 def renderRelative(request, form_id):
@@ -26,10 +26,10 @@ def renderRelative(request, form_id):
 	"""
 
 	# check if session matches user
-	obj = DbEntry.objects.get(form_id = form_id)
+	obj = ViewingSession.objects.get(form_id = form_id)
 	session = request.session.session_key
 
-	origin = obj.sessionId
+	origin = obj.session_id
 	
 	if origin != session:
 		return HttpResponseForbidden()
@@ -60,6 +60,8 @@ def renderRelative(request, form_id):
 	for i in xrange(int(linkers)):
 		file = '%s/link' %(tempDir) + str(i) + '.' + str(grabNum) + '.pdb'
 		file = str(file)
+		log.info(file)
+		log.info(os.stat(file))
 		linker = B.PDBModel(file)
 		center = linker.center()*0.05
 		linkpoints.append(json.dumps(center.tolist()))

@@ -18,7 +18,7 @@ from .apps import CalledAppsConfig
 
 from getLinker import getLinker
 
-from models import DbEntry
+from models import ViewingSession
 from django.http import HttpResponseForbidden
 
 

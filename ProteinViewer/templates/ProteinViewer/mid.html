@@ -9,16 +9,22 @@
 	<script src={% static "js/cookie.js" %}></script>
 	<script>
 	  $(function(){
-	    $.ajax({
-	      async: true,
-	      type: 'GET',
-	      url: "load/"
-	    }).done(function(data){
-	      console.log('ended');
-	      document.write(data);
-	      document.close();
-	    });
-	  });      
+	    setInterval(check, 1000)
+	  });  
+
+	  function check(){
+	  	$.ajax({
+	  	  async: true,
+	  	  type: 'GET',
+	  	  url: "check/"
+	  	}).done(function(data){
+	  		if(data == 1 || data == -1){
+	  			console.log('changed')
+	  			location.reload(true);
+	  		}
+	  		console.log('not changed')
+	  	});
+	  }
 	</script>
 	</head>
 	<body>
