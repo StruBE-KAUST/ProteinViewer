@@ -301,7 +301,7 @@ def load(form_id, session_id):
 	domain_residue_ranges = findDomainRanges(number_of_domains, temporary_directory, sequence)
 	all_residue_ranges = findAllRanges(domain_residue_ranges, sequence)
 
-	counts = getLinker(domain_residue_ranges, all_residue_ranges, True, 0, 'sequence.fasta', representation, temporary_directory)
+	counts = getLinker(domain_residue_ranges, all_residue_ranges, True, 0, representation, temporary_directory)
 	
 	if counts == FAILED_STATE: 
 		# ranch was killed; domains too far apart

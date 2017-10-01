@@ -112,7 +112,7 @@ def returnData(request, form_id):
 	transformPdbs(matrices, number_of_domains, temporary_directory)
 
 	# use getLinker to run ranch, pulchra etc. to get new linker
-	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, grab_number, "sequence.fasta", representation, temporary_directory)
+	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, grab_number, representation, temporary_directory)
 	json_array = json.dumps([presses, grab_number, run_programs])
 
 	return HttpResponse(json_array, content_type="application/json")
