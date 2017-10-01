@@ -3,14 +3,20 @@ Processes data from form, then calls getLinker to run ranch/pulchra/vmd etc
 and returns the viewer page
 """
 
-from django.shortcuts import render
 from models import ViewingSession
 from models import Linker
 from models import Domain
-from django.conf import settings
-from ast import literal_eval
+from models import Asset
+from models import Entity
+from models import Box
+from models import Line
+from models import DOMAIN
+from models import LINKER
+from models import FAILED_STATE
+from models import SUCCESS_STATE
+from models import NO_SHIFT
+from models import SHIFT
 
-from django.http import HttpResponseNotFound
 from django.http import HttpResponseForbidden
 
 import time
@@ -18,130 +24,135 @@ import Biskit as B
 import re
 
 from getLinker import getLinker
-from subprocess import Popen, PIPE, STDOUT
 
-
-def findDoms(pdbs, tempDir, sequence):
+def findDomainRanges(number_of_domains, temporary_directory, sequence):
 	"""
 	Find the residue ranges for each domain using the pdb files and sequence
-	@param pdbs: number of domains
-	@type pdbs: int
-	@param tempDir: directory where files are located
-	@type tempDir: string
+	by matching the sequence extracted from the pdb file to the given sequence
+	@param number_of_domains: number of domains
+	@type number_of_domains: int
+	@param temporary_directory: directory where files are located
+	@type temporary_directory: string
 	@param sequence: the sequence for the file
 	@type sequence: string
 
-	@return domRanges: the residue ranges for each domain
-	@rtype domRanges: list of lists
+	@return domain_residue_ranges: the residue ranges for each domain
+	@rtype domain_residue_ranges: list of lists
 	"""
 
-	domRanges = []
+	domain_residue_ranges = []
 
-	for i in xrange(int(pdbs)):
-	    m = B.PDBModel('%s' %(tempDir) + '/pdb' + str(i) + '.pdb')
+	for i in xrange(int(number_of_domains)):
+	    m = B.PDBModel('{}'.format(temporary_directory) + '/pdb' + str(i) + '.pdb')
 	    m = m.compress(m.maskProtein())
 	    s = m.sequence()
 
+	    # use regex to match the pdb sequence to the given sequence
 	    match = re.search(s, sequence)
-	    domR = match.span()
-	    domR = [domR[0], domR[1]]
-	    domRanges.append(domR)
+	    domain_residues = match.span()
+	    domain_residues = [domain_residues[0], domain_residues[1]]
+	    domain_residue_ranges.append(domain_residues)
 
-	return domRanges
+	return domain_residue_ranges
 
-def findAll(domRanges, sequence):
+def findAllRanges(domain_residue_ranges, sequence):
 	"""
 	Use the domain ranges and the sequence to find the linkers' residue ranges
-	@param domRanges: the residue ranges for all domains
-	@type: list
+	by checking for residue ranges in the sequence that are not covered by domains
+	@param domain_residue_ranges: the residue ranges for all domains
+	@type domain_residue_ranges: list
 	@param sequence: the sequence for the file
-	@type: string
+	@type sequence: string
 
-	@return allRanges: residue ranges for all domains and linkers
+	@return all_residue_ranges: residue ranges for all domains and linkers
 	@rtype: list of lists
 	"""
 
 	prev = 0
 	end = len(sequence)
-	allRanges = []
+	all_residue_ranges = []
 
-	for i in xrange(len(domRanges)):
-	    dom = domRanges[i]
-	    if dom[0] == prev and prev == 0:
-	        allRanges.append(dom)
-	        prev = dom[1]
-	    elif dom[0] != prev and prev == 0:
-	        tup = [prev, dom[0] + 1]
-	        allRanges.append(tup)
-	        allRanges.append(dom)
-	        prev = dom[1]
-	    elif dom[0] != prev:
-	        tup = [prev - 1, dom[0] + 1]
-	        allRanges.append(tup)
-	        allRanges.append(dom)
-	        prev = dom[1]
-	    elif i != len(domRanges) - 1:
-	        tup = [dom[0] - 1, dom[0] + 1]
-	        allRanges.append(tup)
-	        prev = dom[1]
+	for i in xrange(len(domain_residue_ranges)):
+	    domain_residues = domain_residue_ranges[i]
+	    if domain_residues[0] == prev and prev == 0:
+	    	# there is no leading linker
+	        all_residue_ranges.append(domain_residues)
+	        prev = domain_residues[1]
+	    elif domain_residues[0] != prev and prev == 0:
+	    	# there is a leading linker
+	        linker_residues = [prev, domain_residues[0] + 1]
+	        all_residue_ranges.append(linker_residues)
+	        all_residue_ranges.append(domain_residues)
+	        prev = domain_residues[1]
+	    elif domain_residues[0] != prev:
+	    	# there is a linker present between this and the previous domain
+	        linker_residues = [prev - 1, domain_residues[0] + 1]
+	        all_residue_ranges.append(linker_residues)
+	        all_residue_ranges.append(domain_residues)
+	        prev = domain_residues[1]
 	    else:
-	        tup = [dom[0] - 1, dom[1]]
-	        allRanges.append(tup)
-	        prev = dom[1]
+	    	# there is no linker present between this and the previous domain; 
+	    	# place "linker" for continuity
+	        linker_residues = [domain_residues[0] - 1, domain_residues[0] + 1]
+	        all_residue_ranges.append(linker_residues)
+	        all_residue_ranges.append(domain_residues)
+	        prev = domain_residues[1]
 
-	if(allRanges[len(allRanges) - 1])[1] != end:
-	    tup = [prev - 1, end]
-	    allRanges.append(tup)
+	if(all_residue_ranges[len(all_residue_ranges) - 1])[1] != end:
+		# there is a trailing linker
+	    linker_residues = [prev - 1, end]
+	    all_residue_ranges.append(linker_residues)
 
-	return allRanges
+	return all_residue_ranges
 
 
-def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
+def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_ranges, temporary_directory):
 	"""
 	Use the domain-linker pattern to determine which domains the boxes (which
 	indicate the domain-linker boundary) will follow. There are 4 cases:
-	Case #1: linkRanges[0] == allRanges[0] and linkRanges[len(linkRanges) - 1] == allRanges[len(allRanges) - 1]
+	Case #1: linker_residue_ranges[0] == all_residue_ranges[0] and linker_residue_ranges[len(linker_residue_ranges) - 1] == all_residue_ranges[len(all_residue_ranges) - 1]
 			 (ie. there is a leading linker and a trailing linker)
-	Case #2: linkRanges[0] == allRanges[0]
+	Case #2: linker_residue_ranges[0] == all_residue_ranges[0]
 			 (ie. there is a leading linker but no trailing linker)
-	Case #3: linkRanges[len(linkRanges) - 1] == allRanges[len(allRanges) - 1]
+	Case #3: linker_residue_ranges[len(linker_residue_ranges) - 1] == all_residue_ranges[len(all_residue_ranges) - 1]
 			 (ie. there is a trailing linker but no leading linker)
 	Case #4: else
 			 (there is no leading or training linker)
 
-	@param domRanges: the residue ranges for all domains
-	@type domRanges: list
-	@param linkRanges: the residue ranges for all linkers
-	@type linkRanges: list
-	@param allRanges: the residue ranges for all domains and linkers
-	@type allRanges: list
-	@param tempDir: directory to get files from
-	@type tempDir: string
+	@param domain_residue_ranges: the residue ranges for all domains
+	@type domain_residue_ranges: list
+	@param linker_residue_ranges: the residue ranges for all linkers
+	@type linker_residue_ranges: list
+	@param all_residue_ranges: the residue ranges for all domains and linkers
+	@type all_residue_ranges: list
+	@param temporary_directory: directory to get files from
+	@type temporary_directory: string
 
-	@return boxDeets: list of the x,y,z positions of all the 
+	@return: dictionary containing information of a shift for starting linker, and a list of the x,y,z positions of all the boxes
+	@rtype: dictionary
 	"""
 
-	# remove trailing linkers from linkRanges, keeping track of leading ones 
-	linkShift = 0
-	linkR = list(linkRanges)
+	# remove trailing linkers from linker_residue_ranges, keeping track of leading ones 
+	shifted_for_linker = NO_SHIFT
+	linker_ranges = list(linker_residue_ranges)
 
-	if linkR[0] == allRanges[0]:
-	    linkR.remove(linkR[0])
-	    linkShift = 1
-	if linkR[len(linkR) - 1] == allRanges[len(allRanges) - 1]:
-	    linkR.remove(linkR[len(linkR) - 1])
+	if linker_ranges[0] == all_residue_ranges[0]:
+	    linker_ranges.remove(linker_ranges[0])
+	    shifted_for_linker = SHIFT
+	if linker_ranges[len(linker_ranges) - 1] == all_residue_ranges[len(all_residue_ranges) - 1]:
+	    linker_ranges.remove(linker_ranges[len(linker_ranges) - 1])
 
-	startPos = []
-	endPos = []
+	start_positions = []
+	end_positions = []
 
-	domains = len(domRanges)
+	number_of_domains = len(domain_residue_ranges)
 
 	# get the position of the start and end residues of each domain
-	for i in xrange(domains):
-	    m = B.PDBModel("%s/dom" %(tempDir) + str(i) + '.pdb')
-	    domR = domRanges[i]
-	    shift = domR[0]
-	    extremes = [domR[0] - shift, domR[1] - shift - 1]
+	for i in xrange(number_of_domains):
+	    m = B.PDBModel("{}/dom".format(temporary_directory) + str(i) + '.pdb')
+	    residue = domain_residue_ranges[i]
+	    shift = residue[0]
+	    extremes = [residue[0] - shift, residue[1] - shift - 1]
 	    start = m.takeResidues([extremes[0]])
 	    end = m.takeResidues([extremes[1]])
 	    startXyz = start.getXyz()*0.05
@@ -150,159 +161,205 @@ def getBoxDeets(domRanges, linkRanges, allRanges, tempDir):
 	    # endXyz[0] seems to be better even though endXyz[len(endXyz) - 1] is the actual end..
 	    end = endXyz[len(endXyz) - 1].tolist()
 	    if i != 0:
-	        startPos.append(first)
-	    if i != domains - 1:
-	        endPos.append(end)
+	        start_positions.append(first)
+	    if i != number_of_domains - 1:
+	        end_positions.append(end)
 
 
-	domNum = 0
-	linkNum = 0
+	domain_number = 0
 
-	boxDeets = []
+	box_details = []
 
-	for i in xrange(len(linkR)*2):
+	for i in xrange(len(linker_ranges)*2):
 	    if i % 2 == 0:
-	        # if even, take endpos and link to domain number
-	        boxDeets.append([endPos[0], domNum])
-	        endPos.remove(endPos[0])
+	        # if even, take end_position and link to domain number
+	        box_details.append([end_positions[0], domain_number])
+	        end_positions.remove(end_positions[0])
 	    else:
-	        # if odd, up the domain number, take startpos and link to num
-	        domNum = domNum + 1
-	        boxDeets.append([startPos[0], domNum])
-	        startPos.remove(startPos[0])
+	        # if odd, up the domain number, take start_position and link to num
+	        domain_number = domain_number + 1
+	        box_details.append([start_positions[0], domain_number])
+	        start_positions.remove(start_positions[0])
 
-	return {'linkShift': linkShift, 'boxDeets': boxDeets}
+	return {'shifted_for_linker': shifted_for_linker, 'box_details': box_details}
+
+def createDomainsOrLinkers(type_of_piece, number_of_pieces, current_viewing_session):
+	'''
+	Creates count number of the piece of given type, either domains or linkers,
+	and saves them to the database.
+	@param type_of_piece: the type of "piece", either "dom" or "link" for domain or linker
+	@type type_of_piece: string
+	@param number_of_pieces: number of pieces of the given type to make
+	@type number_of_pieces: int
+	@param current_viewing_session: the viewing session being used
+	@type current_viewing_session: ViewingSession
+	'''
+
+	form_id = current_viewing_session.form_id
+
+	for i in xrange(number_of_pieces):
+		if type_of_piece == "dom":
+			obj_name = type_of_piece + str(i) + '.obj'
+			mtl_name = type_of_piece + str(i) + '.mtl'
+		elif type_of_piece == "link":
+			obj_name = type_of_piece + str(i) + '.0.obj'
+			mtl_name = type_of_piece + str(i) + '.0.mtl'
+		else:
+			return
+
+		obj_id = type_of_piece + "_model" + str(i)
+		obj_src = "/media/{}/".format(form_id) + obj_name
+		mtl_id = type_of_piece + "_mat" + str(i)
+		mtl_src = "/media/{}/".format(form_id) + mtl_name 
+
+		a = Asset(obj_id=obj_id, obj_src=obj_src, mat_id=mtl_id, mat_src=mtl_src, viewing_session=current_viewing_session)
+		a.save()
 
 
+		if type_of_piece == "dom":
+			entity_id = type_of_piece + str(i)
+			entity_obj = "#dom_model" + str(i)
+			entity_mat = "#dom_mat" + str(i)
+			entity_class = "domain"
+			entity_mixin = "dymol"
+		else:
+			entity_id = type_of_piece + str(i)
+			entity_obj = "#link_model" + str(i)
+			entity_mat = "#link_mat" + str(i)
+			entity_class = "linker"
+			entity_mixin = "dylink"
+
+		e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, viewing_session=current_viewing_session)
+		e.save()
+
+def createBoxes(details, current_viewing_session):
+	'''
+	Create the box entities and save them to the database
+	@param details: dictionary containing information of a shift for starting linker, 
+	and a list of the x,y,z positions of all the boxes
+	@type details: dictionary
+	@param current_viewing_session: the viewing session being used
+	@type current_viewing_session: ViewingSession
+	'''
+	box_details = details['box_details']
+	shifted_for_linker = details['shifted_for_linker']
+
+	linker_number = 0
+	for i in xrange(len(box_details)):
+		if i % 2 != 0:
+			linker_number = linker_number + 1
+
+		box_id = "box" + str(i)
+		box_position = str(box_details[i][0][0]) + ' ' + str(box_details[i][0][1]) + ' ' + str(box_details[i][0][2])
+		box_target = "dom" + str(box_details[i][1])
+		box_line = str(linker_number)
+		box_link = str(linker_number + shifted_for_linker)
+
+		b = Box(box_id=box_id, box_position=box_position, box_target=box_target, box_line=box_line, box_link=box_link, viewing_session=current_viewing_session)
+		b.save()
+
+def createLines(number_of_lines, current_viewing_session):
+	'''
+	Create lines to go between the boxes; there will always be an even number of boxes
+	@param number_of_lines: the number of lines to be created
+	@type number_of_lines: integer
+	@param current_viewing_session: the viewing session being used
+	@type current_viewing_session: ViewingSession
+	'''
+	for i in xrange(number_of_lines):
+		line_id = "line" + str(i)
+		line_start_box = "box" + str(i*2)
+		line_end_box = "box" + str((i*2)+1)
+
+		l = Line(line_id=line_id, line_start_box=line_start_box, line_end_box=line_end_box, viewing_session=current_viewing_session)
+		l.save()
 
 
-def load(form_id, session):
+def load(form_id, session_id):
 	"""
-	Uses the user-entered values to get the residue ranges, then calls getLinker.
-	Returns the viewer page with values in the context
-	@param request: the request from views.py
-	@type request: django request
+	Uses the user-entered values to get the residue ranges, calls getLinker, and saves resulting information in django models.
 	@param form_id: the unique identifier for the form
 	@type form_id: string
+	@param session: the unique identifier for the user
+	@type session: string
 	"""
 
-	# check if session matches user
-	obj = ViewingSession.objects.get(form_id = form_id)
+	# check if current user is the user that created the current ViewingSession
+	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
 
-	origin = obj.session_id
+	original_session_id = current_viewing_session.session_id
 	
-	if origin != session:
+	if original_session_id != session_id:
 		return HttpResponseForbidden()
 
-	# form id & session already have
+	number_of_domains = current_viewing_session.number_of_domains
+	representation = current_viewing_session.representation.encode('ascii')
+	sequence = current_viewing_session.sequence.encode('ascii')
+	temporary_directory = current_viewing_session.temporary_directory.encode('ascii')
 
-	pdbs = obj.number_of_domains
-	rep = obj.representation.encode('ascii')
-	sequence = obj.sequence.encode('ascii')
-	tempDir = settings.MEDIA_ROOT + form_id
+	start_time = time.time()
+	domain_residue_ranges = findDomainRanges(number_of_domains, temporary_directory, sequence)
+	all_residue_ranges = findAllRanges(domain_residue_ranges, sequence)
 
-	starttime = time.time()
-	domRanges = findDoms(pdbs, tempDir, sequence)
-	allRanges = findAll(domRanges, sequence)
-
-	pieces = getLinker(domRanges, allRanges, True, 0, 'sequence.fasta', rep, tempDir)
+	counts = getLinker(domain_residue_ranges, all_residue_ranges, True, 0, 'sequence.fasta', representation, temporary_directory)
 	
-	if pieces == 0: 
+	if counts == FAILED_STATE: 
 		# ranch was killed; domains too far apart
-	    # response = self.render_form(request, form)
-	    # TODO: Go back to the form and make the user upload new domains
-	    # messages.error(request, "Domains are too far apart!")
-	    # return response
-	    obj.process_status = -1
-	    obj.save()
-
+	    current_viewing_session.process_status = FAILED_STATE
+	    current_viewing_session.save()
 	    return
 
-	domains = pieces[0]
-	linkers = pieces[1]
+	number_of_domains = counts[0]
+	number_of_linkers = counts[1]
 
-	# use domranges and allranges to sort for linkers' residue ranges
-	linkRanges = []
+	if number_of_domains != current_viewing_session.number_of_domains:
+		# something went wrong, lost information
+		current_viewing_session.process_status = FAILED_STATE
+		current_viewing_session.save()
+		return
 
-	for i in allRanges:
-	    if i in domRanges:
+	# use domain_residue_ranges and all_residue_ranges to sort for linkers' residue ranges
+	linker_residue_ranges = []
+
+	for i in all_residue_ranges:
+	    if i in domain_residue_ranges:
 	        pass
 	    else: 
-	        linkRanges.append(i)
+	        linker_residue_ranges.append(i)
 
-	deets = getBoxDeets(domRanges, linkRanges, allRanges, tempDir)
-	linkShift = deets['linkShift']
-	boxDeets = deets['boxDeets']
+	details = getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_ranges, temporary_directory)
+	shifted_for_linker = details['shifted_for_linker']
+	box_details = details['box_details']
+	# lines span the gab between two boxes, connecting domains
+	# there is always an even number of boxes
+	number_of_lines = len(box_details)/2
 
-	asset_string = ""
-	entity_string = ""
-
-	# TODO: Add hulls to the asset string when meshlab is up and running
+	# TODO: Add hulls assets and entities when meshlab is up and running
 	# don't give the hulls an mtl file and use the material property instead
 	# to be able to set transparency and opacity (make invisible!) 
-	# Put "follow" on the molecule, NOT on the hull!
+	# Put "follow" on the domain, NOT on the hull!
 
-	# create the domain entities
-	for i in xrange(domains):
-	    obj_name = 'dom' + str(i) + '.obj'
-	    mtl_name = 'dom' + str(i) + '.mtl'
-	    assets = '<a-asset-item id="dom_model' + str(i) + '\" src="/media/%s/' %(form_id) + obj_name + '\"></a-asset-item>' + '<a-asset-item id="dom_mat' + str(i) + '" src="/media/%s/' %(form_id) + mtl_name + '"></a-asset-item>' 
-	    entities = '<a-entity id="dom' + str(i) + '" mixin="dymol" class="domain" obj-model="obj: #dom_model' + str(i) + '; mtl: #dom_mat' + str(i) + '"></a-entity>'
-	    asset_string = asset_string + assets
-	    entity_string = entity_string + entities
+	# create the domain assets and entities
+	createDomainsOrLinkers(DOMAIN, number_of_domains, current_viewing_session)
+	createDomainsOrLinkers(LINKER, number_of_linkers, current_viewing_session)
+	createBoxes(details, current_viewing_session)
+	createLines(number_of_lines, current_viewing_session)
 
-	# create the linker entities
-	for i in xrange(linkers):
-	    obj_name = 'link' + str(i) + '.0.obj'
-	    mtl_name = 'link' + str(i) + '.0.mtl'
-	    assets = '<a-asset-item id="link_model' + str(i) + '\" src="/media/%s/' %(form_id) + obj_name + '\"></a-asset-item>' + '<a-asset-item id="link_mat' + str(i) + '" src="/media/%s/' %(form_id) + mtl_name + '"></a-asset-item>' 
-	    entities = '<a-entity id="link' + str(i) + '\" mixin="dylink" class="linker" obj-model="obj: #link_model' + str(i) + '; mtl: #link_mat' + str(i) + '\"></a-entity>'
-	    asset_string = asset_string + assets
-	    entity_string = entity_string + entities
+	end_time = time.time()
 
-	linkNum = 0
-	# create the box entities,and relate them to the domains, lines and linkers
-	# that they are associated with
-	for i in xrange(len(boxDeets)):
-	    box = ""
-	    if i % 2 == 0:
-	        box = '<a-entity id="box' + str(i) + '" mixin="cube" class="collision" position="' + str(boxDeets[i][0][0]) + ' ' + str(boxDeets[i][0][1]) + ' ' + str(boxDeets[i][0][2]) + '" material="transparent: true; opacity: 0" follow="target: dom' + str(boxDeets[i][1]) + '" line="' + str(linkNum) + '" link="' + str(linkNum + linkShift) + '"></a-entity>'
-	    else:
-	        box = '<a-entity id="box' + str(i) + '" mixin="cube" class="collision" position="' + str(boxDeets[i][0][0]) + ' ' + str(boxDeets[i][0][1]) + ' ' + str(boxDeets[i][0][2]) + '" material="transparent: true; opacity: 0" follow="target: dom' + str(boxDeets[i][1]) + '" line="' + str(linkNum) + '" link="' + str(linkNum + linkShift) + '"></a-entity>'
-   	        linkNum = linkNum + 1
-	    entity_string = entity_string + box
+	time_taken = end_time - start_time
+	print 'Whole process takes ' + str(time_taken) + ' to run'
 
-	# create lines to go between the boxes; there will always be an even number of boxes
-	lineCount = len(boxDeets)/2
-	for i in xrange(lineCount):
-	    line = '<a-entity id="line' + str(i) + '" class="line" line="start: 0 0 0; end: 0 0 0; color: #00ff00" startbox="box' + str(i*2) + '" endbox="box' + str(i*2+1) + '"></a-entity>'
-	    entity_string = entity_string + line
-
-	ranges = [domRanges, linkRanges]
-
-	# create context for the render request
-	# context = {'assets': asset_string, 'entities': entity_string, 'count': pieces, 'ranges': ranges, 'lines': lineCount, 'shift': linkShift, 'rep': rep, 'temp': tempDir, 'form_id': form_id}
-
-	endtime = time.time()
-
-	wholetime = endtime - starttime
-	print 'Whole process takes ' + str(wholetime) + ' to run'
-
-	for dom in domRanges:
-		newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=obj)
+	for dom in domain_residue_ranges:
+		newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=current_viewing_session)
 		newDomain.save()
 
-	for link in linkRanges:
-		newLinker = Linker(first_residue_number=link[0], last_residue_number=link[1], viewing_session=obj)
+	for link in linker_residue_ranges:
+		newLinker = Linker(first_residue_number=link[0], last_residue_number=link[1], viewing_session=current_viewing_session)
 		newLinker.save()
 
-	obj.process_status = 1
-	obj.asset_string = asset_string
-	obj.entity_string = entity_string
-	obj.shifted_for_linker = linkShift
-	obj.number_of_linkers = len(linkRanges)
-	obj.save()
-
-	return
-
-	# return render(request, 'ProteinViewer/viewer.html', context)
+	current_viewing_session.process_status = SUCCESS_STATE
+	current_viewing_session.shifted_for_linker = shifted_for_linker
+	current_viewing_session.number_of_linkers = number_of_linkers
+	current_viewing_session.number_of_lines = number_of_lines
+	current_viewing_session.save()

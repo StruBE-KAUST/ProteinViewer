@@ -6,139 +6,113 @@ use in ranch.
 import Biskit as B 
 import json
 from django.http import HttpResponse
-from django.conf import settings
-from django.shortcuts import render
+from django.http import HttpResponseForbidden
+
 import numpy as np
-
 import os
-import subprocess
-from subprocess import Popen, PIPE, STDOUT
-
-from .apps import CalledAppsConfig
-
 from getLinker import getLinker
 
 from models import ViewingSession
-from django.http import HttpResponseForbidden
+from models import Domain
+from models import Linker
 
-
-
-def strParser(inputStr):
-	"""
-	Parse json string into list of lists
-	@param inputStr: the list of lists as a json string
-	@type inputStr: string
-	"""
-
-	els = map(int, inputStr.split(','))
-	ranges = []
-	temp = []
-
-	# parse domRanges
-	for i in xrange(len(els)):
-		if i % 2 == 0:
-			temp.append(els[i])
-		else:
-			temp.append(els[i])
-			ranges.append(temp)
-			temp = []
-
-	return ranges
-
-def transformPdb(matrices, domains, tempDir):
+def transformPdbs(matrices, number_of_domains, temporary_directory):
 	"""
 	Convert each matrix string to a matrix, then use to transform the
 	pdbs and save as new pdbs
 	@param matrices: list of strings
 	@type matrices: list
-	@param domains: number of domains in the molecule
-	@type domains: int
-	@param tempDir: directory for the user
-	@type tempDir: unicode
+	@param number_of_domains: number of domains in the molecule
+	@type number_of_domains: int
+	@param temporary_directory: directory for the user
+	@type temporary_directory: unicode
 	"""
-	for i in xrange(domains):
-		a = matrices[i]
-		a = a.split(',')
-		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + '.pdb')
-		center = dom.center()
+	for i in xrange(number_of_domains):
+		matrix = matrices[i]
+		matrix = map(float, matrix.split(','))
+		domain = B.PDBModel('{}/pdb'.format(temporary_directory) + str(i) + '.pdb')
+		center = domain.center()
 
-		index = 0
-		for j in xrange(len(a)):
-			if j != 3 and j != 7 and j != 11:
-				a[j] = float(a[j])
-			else:
-				a[j] = float(a[j])*20 + center[index]
-				index = index + 1
+		# turn the translation parts of the matrix to the right scale and add on
+		# the initial position given by renderRelative
+		matrix[3] = matrix[3]*20 + center[0]
+		matrix[7] = matrix[7]*20 + center[0]
+		matrix[11] = matrix[11]*20 + center[0]
 	
-		asubbed = []
-		atemp = []
+		matrix_subbed = []
+		matrix_temp = []
 		
 		for k in range(len(a)):
-			atemp.append(a[k])
+			matrix_temp.append(matrix[k])
 			if k==3 or k==7 or k==11 or k==15:
-				asubbed.append(atemp)
-				atemp = []
+				matrix_subbed.append(matrix_temp)
+				matrix_temp = []
 
 
-		a = np.array(asubbed)
-		anumpy = np.ndarray(shape=(4,4), dtype=float, buffer=a)
+		matrix = np.array(asubbed)
+		matrix_numpy = np.ndarray(shape=(4,4), dtype=float, buffer=matrix)
 
 		# use the matrice on the pdb files and save as new pdbs
-		dom = B.PDBModel('%s/pdb' %(tempDir) + str(i) + 'ori.pdb')
-		dom = dom.centered()
-		domTrans = dom.transform(anumpy)
-		domTrans.writePdb('%s/pdb' %(tempDir) + str(i) + '.pdb')
+		domain = B.PDBModel('{}/pdb'.format(temporary_directory) + str(i) + 'ori.pdb')
+		domain = domain.centered()
+		domain_transformed = domain.transform(matrix_numpy)
+		domain_transformed.writePdb('{}/pdb'.format(temporary_directory) + str(i) + '.pdb')
 
 
 def returnData(request, form_id):
 	"""
 	saves new coordinates of the domains in aframe to pdb files
+	@param request: the post request object
+	@type: django request
 	@param form_id: the form id taken from the request url
-	@param type: unicode
+	@type form_id: unicode
 	"""
 
 	# check if session matches user
-	obj = DbEntry.objects.get(form_id = form_id)
-	session = request.session.session_key
+	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
+	session_id = request.session.session_key
 
-	origin = obj.sessionId
+	original_session_id = current_viewing_session.session_id
 	
-	if origin != session:
+	if original_session_id != session_id:
 		return HttpResponseForbidden()
 
-	# first, parse the incoming lists from json strings back to lists
-	domStr = request.POST.get('domRanges')
-	allStr = request.POST.get('allRanges')
-	sequence = request.POST.get('sequence')
+	domain_residue_ranges = []
+	linker_residue_ranges = []
+	all_residue_ranges = []
+
+	domains = Domain.objects.filter(viewing_session=current_viewing_session)
+	for domain in domains:
+		residue_range = [domain.first_residue_number, domain.last_residue_number]
+		domain_residue_ranges.append(residue_range)
+
+	linkers = Linker.objects.filter(viewing_session=current_viewing_session)
+	for linker in linkers:
+		residue_range = [linker.first_residue_number, linker.last_residue_number]
+		linker_residue_ranges.append(residue_range)
+
+	all_residue_ranges.extend(domain_residue_ranges)
+	all_residue_ranges.extend(linker_residue_ranges)
+	all_residue_ranges = sorted(all_residue_ranges)
+
+	representation = current_viewing_session.representation
+	temporary_directory = current_viewing_session.temporary_directory
+
 	presses = request.POST.get('presses')
-	rep = request.POST.get('rep')
-	tempDir = request.POST.get('temp')
-	grabNum = request.POST.get('grabNum')
+	grab_number = request.POST.get('grab_number')
 
-	domRanges = strParser(domStr)
-	allRanges = strParser(allStr)
-
-	domains = len(domRanges)
+	number_of_domains = current_viewing_session.number_of_domains
+	number_of_linkers = current_viewing_session.number_of_linkers
 	matrices = []
 
-	for i in xrange(domains):
-		mat = request.POST.get('mat' + str(i))
-		matrices.append(mat)
+	for i in xrange(number_of_domains):
+		matrix = request.POST.get('mat' + str(i))
+		matrices.append(matrix)
 
-	transformPdb(matrices, domains, tempDir)
-
+	transformPdbs(matrices, number_of_domains, temporary_directory)
 
 	# use getLinker to run ranch, pulchra etc. to get new linker
-	runPrograms = getLinker(domRanges, allRanges, False, grabNum, sequence, rep, tempDir)
-
-	if runPrograms == None:
-		# the domains have been moved too far away for ranch to create a pool
-		json_output = json.dumps([presses, grabNum, runPrograms])
-		return HttpResponse(json_output, content_type="application/json")
-
-	linkers = len(allRanges) - len(domRanges)
-	domains = len(domRanges)
-
-	json_array = json.dumps([presses, grabNum, domains, linkers])
+	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, grab_number, "sequence.fasta", representation, temporary_directory)
+	json_array = json.dumps([presses, grab_number, run_programs])
 
 	return HttpResponse(json_array, content_type="application/json")

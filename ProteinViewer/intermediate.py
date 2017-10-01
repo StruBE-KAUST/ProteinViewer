@@ -1,11 +1,19 @@
+''' 
+This view acts as a filter, checking which of the final pages to show to the user;
+if the subprocess running load.py for this view is complete and all the files
+needed for the viewer.html are ready, it shows the user the viewer.html page. If
+not, it loads a simple loading page
+'''
+
 from django.shortcuts import render
 from models import ViewingSession
 from models import Domain
 from models import Linker
-from django.conf import settings
-from ast import literal_eval
+from models import Asset
+from models import Entity
+from models import Box
+from models import Line
 from django.http import HttpResponseForbidden
-from django.http import HttpResponse
 
 from models import SUCCESS_STATE
 from models import RUNNING_STATE
@@ -13,49 +21,63 @@ from models import FAILED_STATE
 
 def page(request, form_id):
 	"""
-	View responsible for producing the loading page
+	If the files are ready, loads the viewer page, and if not, loads the loading page
 	@param request: request object from views.py
 	@type request: django request
 	@param form_id: the unique id of the form submitted
 	@type form_id: string
+
+	@return: HttpResponseObject
 	"""
 	# check if session matches user
-	obj = ViewingSession.objects.get(form_id = form_id)
-	session = request.session.session_key
+	current_viewing_session = ViewingSession.objects.get(form_id = form_id)
+	session_id = request.session.session_key
 
-	origin = obj.session_id
+	original_session_id = current_viewing_session.session_id
 	
-	if origin != session:
+	if original_session_id != session_id:
 		return HttpResponseForbidden()
 
-	state = obj.process_status
+	process_status = current_viewing_session.process_status
 
-	if state == RUNNING_STATE:
+	if process_status == RUNNING_STATE:
+		# the subprocess is still running, wait
 		return render(request, 'ProteinViewer/mid.html')
-	elif state == SUCCESS_STATE:
-		domRanges = []
-		linkRanges = []
-		allRanges = []
+	elif process_status == SUCCESS_STATE:
+		# subprocess completed, .obj files ready to be used
+		domain_residue_ranges = []
+		linker_residue_ranges = []
+		all_residue_ranges = []
 
-		domains = Domain.objects.filter(viewing_session=obj)
+		domains = Domain.objects.filter(viewing_session=current_viewing_session)
+		for domain in domains:
+			residue_range = [domain.first_residue_number, domain.last_residue_number]
+			domain_residue_ranges.append(residue_range)
 
-		for dom in domains:
-			r = [dom.first_residue_number, dom.last_residue_number]
-			domRanges.append(r)
+		linkers = Linker.objects.filter(viewing_session=current_viewing_session)
+		for linker in linkers:
+			residue_range = [linker.first_residue_number, linker.last_residue_number]
+			linker_residue_ranges.append(residue_range)
 
-		linkers = Linker.objects.filter(viewing_session=obj)
+		all_residue_ranges.extend(domain_residue_ranges)
+		all_residue_ranges.extend(linker_residue_ranges)
+		all_residue_ranges = sorted(all_residue_ranges)
 
-		for link in linkers:
-			r = [link.first_residue_number, link.last_residue_number]
-			linkRanges.append(r)
+		# call ViewingSession's class method to check if whole sequence is covered?
+		# or is that redundant?
+		# covered = current_viewing_session.checkSequence(all_residue_ranges)
+		# if covered == FAILED_STATE:
+		# 	print 'failed'
+		# 	return HttpResponseForbidden()
 
-		allRanges.extend(domRanges)
-		allRanges.extend(linkRanges)
+		assets = Asset.objects.filter(viewing_session=current_viewing_session)
+		entities = Entity.objects.filter(viewing_session=current_viewing_session)
+		boxes = Box.objects.filter(viewing_session=current_viewing_session)
+		lines = Line.objects.filter(viewing_session=current_viewing_session)
 
-		allRanges = sorted(allRanges)
-
-		context = {'assets': obj.asset_string, 'entities': obj.entity_string, 'numDomains': obj.number_of_domains, 'numLinkers': obj.number_of_linkers, 'domRanges': domRanges, 'allRanges': allRanges, 'lines': obj.number_of_lines, 'shift': obj.shifted_for_linker, 'rep': obj.representation, 'temp': obj.temporary_directory, 'form_id': obj.form_id}
+		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory}
 		return render(request, 'ProteinViewer/viewer.html', context)
 	else:
-		# TODO: Go back to the form!! Getting this means it failed!
+		# something failed (most likely Ranch: given domains are too far apart)
+		# TODO: Go back to the form!!
 		return HttpResponseForbidden()

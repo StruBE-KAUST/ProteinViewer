@@ -5,13 +5,9 @@ still be manipulated per piece
 """
 
 import Biskit as B
-from django.conf import settings
-from .apps import CalledAppsConfig
 import json
 
 import os
-import subprocess
-from subprocess import Popen, PIPE, STDOUT
 import logging
 
 from models import ViewingSession
@@ -21,51 +17,57 @@ from django.http import HttpResponse
 
 def renderRelative(request, form_id):
 	"""
+	Determines positions in a-frame to place each domain and linker so that
+	they are rendered relative to one another
 	@param form_id: the form id taken from the request url
 	@type form_id: unicode
+
+	@return: HttpResponseObject
 	"""
 
 	# check if session matches user
-	obj = ViewingSession.objects.get(form_id = form_id)
-	session = request.session.session_key
+	current_viewing_session = ViewingSession.objects.get(form_id = form_id)
+	session_id = request.session.session_key
 
-	origin = obj.session_id
+	original_session_id = current_viewing_session.session_id
 	
-	if origin != session:
+	if original_session_id != session_id:
 		return HttpResponseForbidden()
-
 
 	log = logging.getLogger(__name__)
 
-	domains = request.POST.get('domains')
-	linkers = request.POST.get('linkers')
-	grabNum = request.POST.get('grabNum')
-	presses = request.POST.get('presses')
-	tempDir = request.POST.get('temp')
+	number_of_domains = current_viewing_session.number_of_domains
+	number_of_linkers = current_viewing_session.number_of_linkers
+	temporary_directory = current_viewing_session.temporary_directory
 
-	dompoints = []
-	linkpoints = []
+	grab_number = request.POST.get('grab_number')
+	presses = request.POST.get('presses')
+	do_all = request.POST.get('do_all')
+
+	domain_positions = []
+	linker_positions = []
 	# get the positions of the center of each domain and linker. Since the 
 	# pdb file had been centered before splitting, this gives us the coordinates
-	# relative to the center. *0.05 to turn the pdb 
-	for i in xrange(int(domains)):
-		file = '%s/dom' %(tempDir) + str(i) + '.pdb'
-		file = str(file)
-		log.info(file)
-		log.info(os.stat(file))
-		domain = B.PDBModel(file)
-		center = domain.center()*0.05
-		dompoints.append(json.dumps(center.tolist()))
+	# relative to the center. *0.05 to turn the pdb coordinates into aframe coordinates
+	if int(do_all) == 0:
+		for i in xrange(number_of_domains):
+			file = '{}/dom'.format(temporary_directory) + str(i) + '.pdb'
+			file = str(file)
+			log.info(file)
+			log.info(os.stat(file))
+			domain = B.PDBModel(file)
+			center = domain.center()*0.05
+			domain_positions.append(json.dumps(center.tolist()))
 
-	for i in xrange(int(linkers)):
-		file = '%s/link' %(tempDir) + str(i) + '.' + str(grabNum) + '.pdb'
+	for i in xrange(number_of_linkers):
+		file = '{}/link'.format(temporary_directory) + str(i) + '.' + str(grab_number) + '.pdb'
 		file = str(file)
 		log.info(file)
 		log.info(os.stat(file))
 		linker = B.PDBModel(file)
 		center = linker.center()*0.05
-		linkpoints.append(json.dumps(center.tolist()))
+		linker_positions.append(json.dumps(center.tolist()))
 
-	json_array = json.dumps([presses, dompoints, linkpoints])
+	json_array = json.dumps([presses, domain_positions, linker_positions])
 
 	return HttpResponse(json_array, content_type="application/json")

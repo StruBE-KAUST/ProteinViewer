@@ -21,72 +21,61 @@
     <script>
       // set the position of each domain using vectors from renderRelative.py
       $(function(){
-
-        // prepares and runs call to renderRelative
-
         scene = document.getElementById('scene');
-
         shift = {{ shift }};
-        domains = {{ numDomains }};
-        linkers = {{ numLinkers }};
-        tempDir = "{{ temp }}";
-        form_id = "{{ form_id }}"
-
+        // parameter used in grab.js
         scene.shift = shift;
-        scene.directory = tempDir;
+        scene.directory = "{{ temporary_directory }}";
 
-        pieces = {'domains': domains, 'linkers': linkers, 'grabNum': 0, 'temp': tempDir};
-
-        console.log('before ajax');
+        data = {'do_all': 0, 'grab_number': 0, 'presses': 0};
 
         $.ajax({
           async: true,
           type: 'POST',
           url: "relative/",
-          data: pieces
+          data: data
         }).done(function(data){
 
-          console.log('after ajax');
+          domain_positions = data[1];
+          linker_positions = data[2];
+          scene.domain_positions = {};
 
-          domains = data[1];
-          linkers = data[2];
-          scene.domPositions = {};
-          for(var i=0; i<domains.length; i++){
-            pos = JSON.parse(domains[i]);
-          // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!! (do this for all the set position places (3 in total))
-            posStr = pos[0] + " " + pos[1] + " " + pos[2];
-            // posDict = {x: pos[0], y: pos[1], z: pos[2]};
-            molID = "#dom" + i;
-            mol = document.getElementById('dom' + i);
-            mol.setAttribute('position', posStr);
-            scene.domPositions['dom' + i] = pos;
+          for(var i=0; i<domain_positions.length; i++){
+            position = JSON.parse(domain_positions[i]);
+          // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!!
+            position_str = position[0] + " " + position[1] + " " + position[2];
+            // position_dict = {x: pos[0], y: pos[1], z: pos[2]};
+            piece_id = "#dom" + i;
+            piece = document.getElementById('dom' + i);
+            piece.setAttribute('position', position_str);
+            scene.domain_positions['dom' + i] = position;
           }
 
-          for(var i=0; i<linkers.length; i++){
-            pos = JSON.parse(linkers[i]);
-            posStr = pos[0] + " " + pos[1] + " " + pos[2];
-            molID = "#link" + i;
-            mol = document.getElementById('link' + i);
-            mol.setAttribute('position', posStr);
+          for(var i=0; i<linker_positions.length; i++){
+            position = JSON.parse(linker_positions[i]);
+            position_str = position[0] + " " + position[1] + " " + position[2];
+            piece_id = "#link" + i;
+            piece = document.getElementById('link' + i);
+            piece.setAttribute('position', position_str);
           }
         });      
       });      
     </script>
     <script>
-    function sendNewCoords(grabNum){
+    function sendNewCoords(grab_number){
       /*
         Send coordinates from aframe to pdbs by making an ajax call to aframeData
-        @param grabNum: the number fo times the user moved domains
-        @type grabNum: int
+        @param grab_number: the number fo times the user moved domains
+        @type grab_number: int
       */
 
       scene = document.getElementById('scene');
 
       presses = scene.press;
       scene.loading = true;
-      tempDir = scene.directory;
+      temporary_directory = scene.directory;
 
-      rep = {{ rep }};
+      representation = {{ representation }};
 
       // lines change color to indicate loading
       var lines = document.querySelectorAll('.line');
@@ -95,54 +84,41 @@
         line.setAttribute('line', 'color', '#ffff00');
       }
 
-      domRanges = {{ domRanges }};
-      allRanges = {{ allRanges }};
-
-      var domains = document.querySelectorAll('.domain');
-      var num = domains.length;
-      var numLink = allRanges.length - num;
-
       var pass = {};
+
+      domains = document.querySelectorAll('.domain');
 
       // get the matrix describing each domain's new position and rotation
       for(var i=0; i<num; i++){
-        pos = domains[i].getAttribute('position');
-        mat = new THREE.Matrix4;
-        quat = new THREE.Quaternion;
-        el = domains[i].object3D.matrixWorld.elements;
+        position = domains[i].getAttribute('position');
+        matrix = new THREE.Matrix4;
+        quaternion = new THREE.Quaternion;
+        elements = domains[i].object3D.matrixWorld.elements;
 
         // since the rotation happening in PDBModel seems to be the opposite of what we want, try transpose the rotation part only: get rid of position data, transpose it, then add on position data
-        el[12] = el[13] = el[14] = 0;
+        elements[12] = elements[13] = elements[14] = 0;
 
-        mat.fromArray(el);
+        matrix.fromArray(elements);
 
-        oldPos = scene.domPositions['dom' + i];
+        old_position = scene.domain_positions['dom' + i];
 
-        delx = pos['x'] - oldPos[0];
-        dely = pos['y'] - oldPos[1];
-        delz = pos['z'] - oldPos[2];
+        delx = position['x'] - old_position[0];
+        dely = position['y'] - old_position[1];
+        delz = position['z'] - old_position[2];
 
-        delPos = {'x': delx, 'y': dely, 'z': delz};
-        mat.setPosition(delPos);
-        mat.transpose();
+        delta_position = {'x': delx, 'y': dely, 'z': delz};
+        matrix.setPosition(delta_position);
+        matrix.transpose();
 
-        mat = mat.elements.toString();
+        matrix = matrix.elements.toString();
 
-        pass['mat' + i] = mat;
+        pass['mat' + i] = matrix;
 
-        scene.domPositions['dom' + i] = [pos['x'], pos['y'], pos['z']];
+        scene.domain_positions['dom' + i] = [position['x'], position['y'], position['z']];
       }
 
-      domRanges = domRanges.toString();
-      allRanges = allRanges.toString();
-
-      pass['domRanges'] = domRanges;
-      pass['allRanges'] = allRanges;
-      pass['sequence'] = "sequence.fasta";
-      pass['grabNum'] = grabNum;
+      pass['grab_number'] = grab_number;
       pass['presses'] = presses;
-      pass['rep'] = rep;
-      pass['temp'] = tempDir;
 
       $.ajax({
         async: true,
@@ -150,14 +126,14 @@
         url: "return/",
         data: pass
       }).done(function(msg) {
+        FAILED_STATE = -1
 
         scene = document.getElementById('scene');
         presses = scene.press;
-        grabNum = msg[1];
-        tempDir = scene.directory;
+        grab_number = msg[1];
 
         // if the configuration is not possible, turn the lines red. Otherwise, set the lines back to length 0 and put in the linkers.
-        if(msg[0] == presses && msg[2] == null){
+        if(msg[0] == presses && msg[2] == FAILED_STATE){
           for(var i=0; i<lines.length; i++){
             line = document.getElementById('line' + i);
             line.setAttribute('line', 'color', '#ff0000');
@@ -165,18 +141,19 @@
           }
         } else if(msg[0] == presses) {
           // this if is necessary to make sure the linkers from only the last move is loaded
-          pieces = {'domains': 0, 'linkers': JSON.parse(msg[3]), 'grabNum': grabNum, 'presses': presses, 'temp': tempDir};
+          data = {'do_all': -1, 'grab_number': grab_number, 'presses': presses};
           $.ajax({
             async: true,
             type: 'POST',
             url: "relative/",
-            data: pieces
+            data: data
           }).done(function(data){
             scene = document.getElementById('scene');
+            temporary_directory = scene.directory;
 
             presses = data[0];
-            domains = data[1];
-            linkers = data[2]; 
+            domain_positions = data[1];
+            linker_positions = data[2]; 
 
             // reset lines
             if(presses == scene.press){
@@ -188,13 +165,13 @@
               }
 
               // load linkers
-              for(var i=0; i<linkers.length; i++){
-                pos = JSON.parse(linkers[i]);
-                posStr = pos[0] + " " + pos[1] + " " + pos[2];
-                mol = document.getElementById('link' + i);
-                mol.setAttribute('obj-model', 'obj', tempDir + '/link' + i + '.' + grabNum + '.obj');
-                mol.setAttribute('obj-model', 'mtl', tempDir + '/link' + i + '.' + grabNum + '.mtl');
-                mol.setAttribute('position', posStr);
+              for(var i=0; i<linker_positions.length; i++){
+                position = JSON.parse(linker_positions[i]);
+                position_str = position[0] + " " + position[1] + " " + position[2];
+                piece = document.getElementById('link' + i);
+                piece.setAttribute('obj-model', 'obj', temporary_directory + '/link' + i + '.' + grab_number + '.obj');
+                piece.setAttribute('obj-model', 'mtl', temporary_directory + '/link' + i + '.' + grab_number + '.mtl');
+                piece.setAttribute('position', position_str);
               }
               scene.loading = false;
             }
@@ -235,13 +212,29 @@
       <a-mixin id="collider" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
 
       <!-- Get the asset string that was build in views.py -->
-      {{ assets |safe }}
+      <!-- {{ assets |safe }} -->
+
+      {% for asset in assets %}
+        <a-asset-item id={{asset.obj_id}} src={{asset.obj_src}}></a-asset-item>
+        <a-asset-item id={{asset.mat_id}} src={{asset.mat_src}}></a-asset-item>
+      {% endfor %}
     </a-assets>
 
     <!-- loads the protein models -->
 
     <!-- Get the entities that were built in views.py -->
-    {{ entities |safe }}
+    <!-- {{ entities |safe }} -->
+    {% for entity in entities %}
+      <a-entity id={{entity.entity_id}} mixin={{entity.entity_mixin}} class={{entity.entity_class}} obj-model="obj: {{entity.entity_obj}}; mtl: {{entity.entity_mat}}"></a-entity>
+    {% endfor %}
+
+    {% for box in boxes %} 
+      <a-entity id={{box.box_id}} mixin="cube" class="collision" position={{box.position}} meterial="transparent: true; opacity: 0" follow="target: {{box.target}}" line={{box.line}}></a-entity>
+    {% endfor %}
+
+    {% for line in lines %}
+      <a-entity id={{line.line_id}} class="line" line="start: 0 0 0; end: 0 0 0; color: #00ff00" startbox={{line.line_start_box}} endbox={{line.line_end_box}}></a-entity>
+    {% endfor %}
 
     <!-- Box that acts as the center; entities "stick" to it -->
     <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: default"></a-box>

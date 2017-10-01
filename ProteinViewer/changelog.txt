@@ -8,12 +8,16 @@
 	- Use of form_id and session id to make sure files are accessed by the correct user
 	- Form data is processed after redirect
 	- Documentation for code and removal of most dead code. Use of helper functions when single functions became too long/complex
-	- Intermediate loading page after form submission
+	- Intermediate loading page after form submission and associated views
 	- Pulchra and ranch paths in apps.py
+	- load.py management file to run load in a subprocess
+	- Linker, Domain, Asset and Entity to models.py
+	- Asset and entity creation done in viewer.html instead of load.py
 
 ### Changed:
 	- In viewer.html, changed access to static files
 	- Error thrown when session id does not match database, now throws 403 forbidden
+	- Template strings use "..{}..".format() instead of %s (cannot use %s for class object creation)
 
 
 ## v1.0 11/09/2017
