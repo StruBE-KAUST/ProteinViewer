@@ -1,3 +1,5 @@
+<!-- An intermediate loading page between the form and the final view. This page is shown while the user's input is processed by the server -->
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -7,27 +9,7 @@
 	<script src="https://code.jquery.com/jquery-3.2.1.js"></script>
 	{% load static %}
 	<script src={% static "js/cookie.js" %}></script>
-	<script>
-	FAILED_STATE = -1
-	SUCCESS_STATE = 1
-
-	$(function(){
-	  setInterval(check, 1000)
-	});  
-
-	function check(){
-		$.ajax({
-		  async: true,
-		  type: 'GET',
-		  url: "check/"
-		}).done(function(data){
-			if(data == SUCCESS_STATE || data == FAILED_STATE){
-				// when this reloads, it calls intermediate.py, which decides if viewer.html is loaded or if the form is loaded again
-				location.reload(true);
-			}
-		});
-	}
-	</script>
+	<script src={% static "js/check.js" %}></script>
 	</head>
 	<body>
 		"Loading"

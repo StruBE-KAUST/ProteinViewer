@@ -1,7 +1,7 @@
 AFRAME.registerComponent('stuck', {
   /*
-    This component stops objects from floating away due to zero gravity.
-    Also stops them from moving further than release point when "thrown"
+    This component sticks the element to the center when released and unsticks it 
+    (to make it grabbable) when grabbed
   */
 
   init: function () {
@@ -9,50 +9,23 @@ AFRAME.registerComponent('stuck', {
     this.physics =    /** @type {AFRAME.System}     */ this.el.sceneEl.systems.physics;
     this.constraint = /** @type {CANNON.Constraint} */ null;
 
-    this.go = this.go.bind(this);
+    this.stick = this.stick.bind(this);
     this.onGrab = this.onGrab.bind(this);
-    this.onRelease = this.onRelease.bind(this);
-
-    this.el.sceneEl.startup = true;
   },
 
   play: function () {
     var el = this.el;
-    el.addEventListener('stick', this.go);
+    el.addEventListener('stick', this.stick);
     el.addEventListener('grabbed', this.onGrab);
-    el.addEventListener('released', this.onRelease);
   },
 
   onGrab: function (evt) {
-    if(this.el.sceneEl.startup == true){
-      // when a controller is grabbed for the first time, stick all elements to
-      // the invisible box at the center and make cartoons follow their hull colliders
-      var els = this.el.sceneEl.querySelectorAll('.domain');
-      var self = this;
-      this.el.sceneEl.startup = false;
-      if(els.length == 0){ return; }
-      for(var i=0; i<els.length; i++){
-        var el = els[i];
-        if(el == self.el){
-          el.emit('follow');
-          continue;
-        } else {
-          el.emit('stick');
-          el.emit('follow');
-        }
-      }
-    } else this.physics.world.removeConstraint(this.constraint);
+    // unstick the domain from the center
+    this.physics.world.removeConstraint(this.constraint);
   },
 
-  onRelease: function (evt) {
-    // When an element is released from a controller, stick it immediately to the center box again
-    var el = this.el;
-    this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
-    this.physics.world.addConstraint(this.constraint);
-  },
-
-  go: function() {
-    // stick elements to the center (called when stick is emitted)
+  stick: function() {
+    // stick domain to the center
     var el = this.el;
     this.constraint = new CANNON.LockConstraint(el.body, el.sceneEl.querySelector('a-box').body);
     this.physics.world.addConstraint(this.constraint);

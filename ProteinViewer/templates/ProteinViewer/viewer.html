@@ -18,107 +18,47 @@
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
     <script src={% static "js/event-state.js" %}></script>
     <script src={% static "js/cookie.js" %}></script>
+    <script src={% static "js/functions.js" %}></script>
     <script>
-      // set the position of each domain using vectors from renderRelative.py
+      /* 
+      Set the position of each domain using vectors from renderRelative.py
+      */
       $(function(){
         scene = document.getElementById('scene');
-        shift = {{ shift }};
         // parameter used in grab.js
-        scene.shift = shift;
-        scene.directory = "{{ temporary_directory }}";
+        scene.shift = {{ shift }};
+        // parameter used in sendNewCoods
+        scene.temporary_directory = "{{ temporary_directory }}";
+        // initialize parameters used in runRelative
+        scene.domain_positions = {};
+        scene.presses = 0;
+        scene.version = 0;
 
-        data = {'do_all': 0, 'grab_number': 0, 'presses': 0};
+        data = {'do_all': 0, 'version': 0, 'presses': 0};
+        runRelative(data, false);   
 
-        $.ajax({
-          async: true,
-          type: 'POST',
-          url: "relative/",
-          data: data
-        }).done(function(data){
-
-          domain_positions = data[1];
-          linker_positions = data[2];
-          scene.domain_positions = {};
-
-          for(var i=0; i<domain_positions.length; i++){
-            position = JSON.parse(domain_positions[i]);
-          // TODO: send dictionary instead, string slow {x:0, y:0, z:0} <- dict doesn't work!!
-            position_str = position[0] + " " + position[1] + " " + position[2];
-            // position_dict = {x: pos[0], y: pos[1], z: pos[2]};
-            piece_id = "#dom" + i;
-            piece = document.getElementById('dom' + i);
-            piece.setAttribute('position', position_str);
-            scene.domain_positions['dom' + i] = position;
-          }
-
-          for(var i=0; i<linker_positions.length; i++){
-            position = JSON.parse(linker_positions[i]);
-            position_str = position[0] + " " + position[1] + " " + position[2];
-            piece_id = "#link" + i;
-            piece = document.getElementById('link' + i);
-            piece.setAttribute('position', position_str);
-          }
-        });      
       });      
     </script>
     <script>
-    function sendNewCoords(grab_number){
+    function sendNewCoords(version){
       /*
         Send coordinates from aframe to pdbs by making an ajax call to aframeData
-        @param grab_number: the number fo times the user moved domains
-        @type grab_number: int
+        @param version: the version of the molecule configuration we're on
+        @type version: int
       */
+      FAILED_STATE = -1;
 
       scene = document.getElementById('scene');
-
-      presses = scene.press;
+      presses = scene.presses;
       scene.loading = true;
-      temporary_directory = scene.directory;
 
       representation = {{ representation }};
 
       // lines change color to indicate loading
-      var lines = document.querySelectorAll('.line');
-      for(var i=0; i<lines.length; i++){
-        line = document.getElementById('line' + i);
-        line.setAttribute('line', 'color', '#ffff00');
-      }
+      changeLineColors('#ffff00', false);
 
-      var pass = {};
-
-      domains = document.querySelectorAll('.domain');
-
-      // get the matrix describing each domain's new position and rotation
-      for(var i=0; i<num; i++){
-        position = domains[i].getAttribute('position');
-        matrix = new THREE.Matrix4;
-        quaternion = new THREE.Quaternion;
-        elements = domains[i].object3D.matrixWorld.elements;
-
-        // since the rotation happening in PDBModel seems to be the opposite of what we want, try transpose the rotation part only: get rid of position data, transpose it, then add on position data
-        elements[12] = elements[13] = elements[14] = 0;
-
-        matrix.fromArray(elements);
-
-        old_position = scene.domain_positions['dom' + i];
-
-        delx = position['x'] - old_position[0];
-        dely = position['y'] - old_position[1];
-        delz = position['z'] - old_position[2];
-
-        delta_position = {'x': delx, 'y': dely, 'z': delz};
-        matrix.setPosition(delta_position);
-        matrix.transpose();
-
-        matrix = matrix.elements.toString();
-
-        pass['mat' + i] = matrix;
-
-        scene.domain_positions['dom' + i] = [position['x'], position['y'], position['z']];
-      }
-
-      pass['grab_number'] = grab_number;
-      pass['presses'] = presses;
+      var pass = {'version': version, 'presses': presses};
+      makeMatrices(pass);
 
       $.ajax({
         async: true,
@@ -126,64 +66,27 @@
         url: "return/",
         data: pass
       }).done(function(msg) {
-        FAILED_STATE = -1
 
-        scene = document.getElementById('scene');
-        presses = scene.press;
-        grab_number = msg[1];
+        presses = scene.presses;
+        version = msg[1];
 
-        // if the configuration is not possible, turn the lines red. Otherwise, set the lines back to length 0 and put in the linkers.
         if(msg[0] == presses && msg[2] == FAILED_STATE){
-          for(var i=0; i<lines.length; i++){
-            line = document.getElementById('line' + i);
-            line.setAttribute('line', 'color', '#ff0000');
-            scene.loading = false;
-          }
+          // if the configuration is not possible, turn the lines red. Otherwise, set the lines back to length 0 and put in the linkers.
+          changeLineColors('#ff0000', false)
+          scene.loading = false;
+
         } else if(msg[0] == presses) {
           // this if is necessary to make sure the linkers from only the last move is loaded
-          data = {'do_all': -1, 'grab_number': grab_number, 'presses': presses};
-          $.ajax({
-            async: true,
-            type: 'POST',
-            url: "relative/",
-            data: data
-          }).done(function(data){
-            scene = document.getElementById('scene');
-            temporary_directory = scene.directory;
+          data = {'do_all': FAILED_STATE, 'version': version, 'presses': presses};
+          runRelative(data, true);
 
-            presses = data[0];
-            domain_positions = data[1];
-            linker_positions = data[2]; 
-
-            // reset lines
-            if(presses == scene.press){
-              for(var i=0; i<lines.length; i++){
-                line = document.getElementById('line' + i);
-                line.setAttribute('line', 'color', '#00ff00');
-                line.setAttribute('line', 'start', '0 0 0');
-                line.setAttribute('line', 'end', '0 0 0');
-              }
-
-              // load linkers
-              for(var i=0; i<linker_positions.length; i++){
-                position = JSON.parse(linker_positions[i]);
-                position_str = position[0] + " " + position[1] + " " + position[2];
-                piece = document.getElementById('link' + i);
-                piece.setAttribute('obj-model', 'obj', temporary_directory + '/link' + i + '.' + grab_number + '.obj');
-                piece.setAttribute('obj-model', 'mtl', temporary_directory + '/link' + i + '.' + grab_number + '.mtl');
-                piece.setAttribute('position', position_str);
-              }
-              scene.loading = false;
-            }
-          });  
-        } else {
-          console.log('not matching');
         }
       });
     }
     </script>
     <script src={% static "js/follow.js" %}></script>
     <script src={% static "js/stuck.js" %}></script>
+    <script src={% static "js/startup.js" %}></script>
     <script src={% static "js/grab.js" %}></script>
     <script src={% static "js/react.js" %}></script>
     <!-- <script src={% static "js/THREE.MeshLine.js" %}></script> -->
@@ -192,7 +95,7 @@
   <body>
 
 
-  <a-scene id="scene" physics="debug: true; gravity: 0" stats debug>
+  <a-scene id="scene" physics="debug: true; gravity: 0" stats debug startup>
     <a-assets>
       <a-mixin id = "controller" action event-state></a-mixin>
       <a-mixin id = "controller-loaded" 
@@ -207,12 +110,10 @@
       <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
 
       <a-mixin id="molecule" stuck></a-mixin>
+      <!-- TODO: When hull colliders are added, take out the physics body and stuck from dymol and put in the follow component instead. Make a mixin for the hull colliders as well -->
       <a-mixin id="dymol" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green"></a-mixin>
       <a-mixin id="dylink"></a-mixin>
       <a-mixin id="collider" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99"></a-mixin>
-
-      <!-- Get the asset string that was build in views.py -->
-      <!-- {{ assets |safe }} -->
 
       {% for asset in assets %}
         <a-asset-item id={{asset.obj_id}} src={{asset.obj_src}}></a-asset-item>
@@ -220,10 +121,8 @@
       {% endfor %}
     </a-assets>
 
-    <!-- loads the protein models -->
+    <!-- loads the protein model entities, boxes to show linker-domain meeting points, and lines for use between domains when a domain is moved -->
 
-    <!-- Get the entities that were built in views.py -->
-    <!-- {{ entities |safe }} -->
     {% for entity in entities %}
       <a-entity id={{entity.entity_id}} mixin={{entity.entity_mixin}} class={{entity.entity_class}} obj-model="obj: {{entity.entity_obj}}; mtl: {{entity.entity_mat}}"></a-entity>
     {% endfor %}
@@ -238,24 +137,6 @@
 
     <!-- Box that acts as the center; entities "stick" to it -->
     <a-box id="center" mixin="cube" material="transparent: true; opacity: 0" static-body collision-filter="group: default"></a-box>
-
-
-
-
-
-    <!-- Hull, Collada model -->
-
-    <!-- TODO: Use as referance when using hull colliders; need to use hull models in dae format for best results -->
-
-    <!-- <a-entity id="daehull" class="model" collada-model="#hulldae" position="-0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol1"></a-entity> -->
-    <!-- <a-entity id="mol1" class="complex" obj-model="obj: #model1; mtl: #mat1" position= "-0.5 1 1"></a-entity> -->
-
-    <!-- <a-entity id="daehull2" class="model" collada-model="#hulldae2" position="0.5 1 1" collision-filter="group: red; collidesWith: default, red, green" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" follow="target: mol2"></a-entity> -->
-    <!-- <a-entity id="mol2" class="complex" obj-model="obj: #model2; mtl: #mat2" position= "0.5 1 1"></a-entity> -->
-
-    <!-- <a-entity class="model" id="blue" mixin="cube" material="color: blue" position="0 1 -1" constraint="target: #blue"></a-entity>
-    <a-entity class="model" id="clear" mixin="cube" material="color: red; opacity: 0; transparent: true" position="0 1 1"></a-entity> -->
-
 
     <!-- Skybox (background) -->
     <a-sky src={% static "img/skybox.jpg" %}></a-sky>

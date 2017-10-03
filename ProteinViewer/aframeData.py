@@ -99,7 +99,7 @@ def returnData(request, form_id):
 	temporary_directory = current_viewing_session.temporary_directory
 
 	presses = request.POST.get('presses')
-	grab_number = request.POST.get('grab_number')
+	version = request.POST.get('version')
 
 	number_of_domains = current_viewing_session.number_of_domains
 	number_of_linkers = current_viewing_session.number_of_linkers
@@ -112,7 +112,7 @@ def returnData(request, form_id):
 	transformPdbs(matrices, number_of_domains, temporary_directory)
 
 	# use getLinker to run ranch, pulchra etc. to get new linker
-	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, grab_number, representation, temporary_directory)
-	json_array = json.dumps([presses, grab_number, run_programs])
+	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, version, representation, temporary_directory)
+	json_array = json.dumps([presses, version, run_programs])
 
 	return HttpResponse(json_array, content_type="application/json")

@@ -13,6 +13,7 @@ LINKER = "link"
 
 
 # Create your models here.
+
 class ViewingSession(models.Model):
 	form_id = models.CharField(max_length=100, unique=True)
 	session_id = models.CharField(max_length=100, default='')
@@ -63,16 +64,12 @@ class Linker(models.Model):
 	first_residue_number = models.IntegerField()
 	last_residue_number = models.IntegerField()
 
-	# foreign key to hold viewing session because each linker can have one viewing session
-	# (many to one)
 	viewing_session = models.ForeignKey(ViewingSession)
 
 class Domain(models.Model):
 	first_residue_number = models.IntegerField()
 	last_residue_number = models.IntegerField()
 
-	# foreign key to hold viewing session because each linker can have one viewing session
-	# (many to one)
 	viewing_session = models.ForeignKey(ViewingSession)
 
 class Asset(models.Model):

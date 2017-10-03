@@ -40,7 +40,7 @@ def renderRelative(request, form_id):
 	number_of_linkers = current_viewing_session.number_of_linkers
 	temporary_directory = current_viewing_session.temporary_directory
 
-	grab_number = request.POST.get('grab_number')
+	version = request.POST.get('version')
 	presses = request.POST.get('presses')
 	do_all = request.POST.get('do_all')
 
@@ -60,7 +60,7 @@ def renderRelative(request, form_id):
 			domain_positions.append(json.dumps(center.tolist()))
 
 	for i in xrange(number_of_linkers):
-		file = '{}/link'.format(temporary_directory) + str(i) + '.' + str(grab_number) + '.pdb'
+		file = '{}/link'.format(temporary_directory) + str(i) + '.' + str(version) + '.pdb'
 		file = str(file)
 		log.info(file)
 		log.info(os.stat(file))

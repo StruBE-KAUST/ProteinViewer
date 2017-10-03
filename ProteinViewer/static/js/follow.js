@@ -28,7 +28,7 @@ AFRAME.registerComponent('follow', {
     THREE.SceneUtils.attach(this.el.object3D, this.el.sceneEl.object3D, target.object3D);
     
     // if it's a domain-linker meeting point box, add to the domain's boxes
-    if(this.el.class == collision){
+    if(this.el.class == 'collision'){
       if(!target.boxes){
         target.boxes = [this.el];
       } else {

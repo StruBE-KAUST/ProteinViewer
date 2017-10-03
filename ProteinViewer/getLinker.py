@@ -98,7 +98,7 @@ def runPulchra(temporary_directory):
 	pulchra = subprocess.Popen(pulchra_input, shell=True)
 	pulchra.wait()
 
-def cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, grab_number, do_all):
+def cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all):
 	'''
 	Cut the pdb that pulchra output into its respective domain and linker pdbs
 	@param all_residue_ranges: the list of residue ranges for all the domains and linkers
@@ -107,8 +107,8 @@ def cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, grab_
 	@type domain_residue_ranges: list of lists
 	@param temporary_directory: the directory where the files are located
 	@type temporary_directory: string
-	@param grab_number: the number of times the user grabbed the molecule
-	@type grab_number: integer
+	@param version: the number of times the domains have been moved
+	@type version: integer
 	@param do_all: whether or not all domains and linkers should be processed
 	@type do_all: boolean
 
@@ -140,22 +140,22 @@ def cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, grab_
 			number_of_domains = number_of_domains + 1
 		else:
 			# if we're dealing with a linker:
-			pdb_name = '{}/link'.format(temporary_directory) + str(number_of_linkers) + '.' + str(grab_number) + '.pdb'
+			pdb_name = '{}/link'.format(temporary_directory) + str(number_of_linkers) + '.' + str(version) + '.pdb'
 			number_of_linkers = number_of_linkers + 1
 
 		piece.writePdb(pdb_name)
 
 	return [number_of_domains, number_of_linkers]
 
-def runVmd(number_of_domains, number_of_linkers, grab_number, temporary_directory, representation, do_all):
+def runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all):
 	'''
 	Runs VMD to go from pdbs to .obj and .mtl files
 	@param number_of_domains: the number of domains to turn to .objs
 	@type number_of_domains: int
 	@param number_of_linkers: the number fo linkers to turn to .objs
 	@type number_of_linkers: int
-	@param grab_number: the number of times the molecule was grabbed
-	@type: grab_number: int
+	@param version: the number of times the domains have been moved
+	@type: version: int
 	@param temporary_directory: the temporary directory where files are locates
 	@type temporary_directory: string
 	@param representation: the representation chosen by the user
@@ -175,13 +175,13 @@ def runVmd(number_of_domains, number_of_linkers, grab_number, temporary_director
 			vmd.wait()
 
 	for i in xrange(number_of_linkers):
-		pdb_name = 'link' + str(i) + '.' + str(grab_number) + '.pdb'
-		obj_name = 'link' + str(i) + '.' + str(grab_number) + '.obj'
+		pdb_name = 'link' + str(i) + '.' + str(version) + '.pdb'
+		obj_name = 'link' + str(i) + '.' + str(version) + '.obj'
 		vmd = subprocess.Popen('cd {}'.format(vmd_path), shell=True, stdin=PIPE)
 		vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 		vmd.wait()
 
-def getLinker(domain_residue_ranges, all_residue_ranges, do_all, grab_number, representation, temporary_directory):	
+def getLinker(domain_residue_ranges, all_residue_ranges, do_all, version, representation, temporary_directory):	
 	"""
 	Runs ranch, pulchra, vmd (and meshlab) to produce the files needed for viewing
 	@param domain_residue_ranges: residue ranges for all domains
@@ -190,8 +190,8 @@ def getLinker(domain_residue_ranges, all_residue_ranges, do_all, grab_number, re
 	@type all_residue_ranges: list of lists, [[a,b], [c,d], ...]
 	@param do_all: whether this function is being called upon form submission
 	@type do_all: bool
-	@param grab_number: the number of times the domains have been moved
-	@type grab_number: int
+	@param version: the number of times the domains have been moved
+	@type version: int
 	@param representation: the representation chosen by user
 	@type representation: str
 	@param temporary_directory: the temporary directory where user's files are stored
@@ -222,16 +222,17 @@ def getLinker(domain_residue_ranges, all_residue_ranges, do_all, grab_number, re
 	print 'Ranch takes ' + str(ranch_time) + ' to run'
 
 	runPulchra(temporary_directory)
-	counts = cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, grab_number, do_all)
+	counts = cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all)
 
 	number_of_domains = counts[0]
 	number_of_linkers = counts[1]
 
-	runVmd(number_of_domains, number_of_linkers, grab_number, temporary_directory, representation, do_all)
+	runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
 
 
 	# TODO: make everything work with meshlab; doesn't run on macos. Note, run meshlab
-	# on everything for lower resolution, but only on domains for the hull colliders
+	# on everything for lower resolution, but only on domains for the hull colliders. Hull colliders will 
+	# be produced at .dae models
 	# TODO: When we put in meshlab, we want to make sure that meshlab always runs after vmd finished running.. maybe 
 	# have a for loop to launch them per piece? And inside the "parallel" call we
 	# have synchronous calls to vmd then meshlab

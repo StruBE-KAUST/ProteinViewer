@@ -1,3 +1,7 @@
+'''
+Runs the load script. This management command was created to allow load.py to run as a subprocess
+'''
+
 from django.core.management.base import BaseCommand, CommandError
 from ProteinViewer.models import ViewingSession
 from ProteinViewer.load import load
@@ -6,9 +10,6 @@ from ProteinViewer.load import load
 # from myapp.models import Book
 
 class Command(BaseCommand):
-    '''
-    Runs the load script. This class was created to allow load to run as a subprocess
-    '''
 
     def add_arguments(self, parser):
         parser.add_argument('form_id', nargs='+', type=str)

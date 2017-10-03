@@ -195,6 +195,9 @@ def createDomainsOrLinkers(type_of_piece, number_of_pieces, current_viewing_sess
 	@type current_viewing_session: ViewingSession
 	'''
 
+	# TODO: when hull colliders are used, remove physics properties on the domain
+	# and put "follow" component instead. Place physics properties on the hull collider
+
 	form_id = current_viewing_session.form_id
 
 	for i in xrange(number_of_pieces):
@@ -336,8 +339,8 @@ def load(form_id, session_id):
 
 	# TODO: Add hulls assets and entities when meshlab is up and running
 	# don't give the hulls an mtl file and use the material property instead
-	# to be able to set transparency and opacity (make invisible!) 
-	# Put "follow" on the domain, NOT on the hull!
+	# to be able to set transparency and opacity (make invisible!) --> problem:
+	# if hulls are produced as .dae models (why is this better?), cannot assign our own material
 
 	# create the domain assets and entities
 	createDomainsOrLinkers(DOMAIN, number_of_domains, current_viewing_session)

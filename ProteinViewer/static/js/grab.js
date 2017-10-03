@@ -1,3 +1,32 @@
+function vanishLinkers(controller, hitEl){
+  /*
+  Makes linkers directly affected by this move vanish
+  @param controller: the controller making the move
+  @type controller: TODO: Enter type
+  @param hitEl: the element hit by the controller
+  @type hitEl: TODO: Enter type
+  */
+  boxes = hitEl.boxes;
+  lines = [];
+  links = [];
+  for(var i=0; i<boxes.length; i++){
+    line = boxes[i].getAttribute('line');
+    lines.push(line);
+    link = boxes[i].getAttribute('link');
+    links.push(link);
+  }
+  controller.lines = lines;
+  for(var i=0; i<links.length; i++){
+    linker = document.getElementById('link' + links[i]);
+    linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
+    linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
+  }
+}
+
+
+
+
+
 AFRAME.registerComponent('action', {
 /**
  * Handles events coming from the hand-controls.
@@ -24,9 +53,6 @@ AFRAME.registerComponent('action', {
     // this.onGripDown = this.onGripDown.bind(this);
     scene = this.el.sceneEl;
     scene.grabbingControllers = 0;
-    scene.grabNum = 0;
-    scene.first = 0;
-    scene.press = 0;
     scene.loading = false;
   },
 
@@ -44,18 +70,15 @@ AFRAME.registerComponent('action', {
 
   onTriggerDown: function (evt) {
     scene = this.el.sceneEl;
-
-    if(scene.first == 0){
-      scene.first = 1;
-      boxes = document.querySelectorAll('.collision');
-      for(var i=0; i<boxes.length; i++){
-        boxes[i].emit('follow');
-      }
+    if(scene.startup == true){
+      scene.emit('startup');
     }
 
-    if(!this.holdEl && this.hitEl){
+    if(!this.holdEl && this.hitEl && !this.hitEl.is(this.GRABBED_STATE)){
+      // TODO: need to test the last statement in the if; see what happens if we try 
+      // grab an already grabbed domain. Do we count presses?
       this.grabbing = true;
-      scene.press = scene.press + 1;
+      scene.presses = scene.presses + 1;
     }
   },
 
@@ -65,17 +88,19 @@ AFRAME.registerComponent('action', {
     this.holding = false;
     if (!hitEl) { return; }
     // if there is an entity, release it by removing the lock constraint that holds
-    // it to the controller. Then call sendNewCoords() to update the linker
+    // it to the controller
     hitEl.removeState(this.GRABBED_STATE);
-    hitEl.emit('released');
+    hitEl.emit('stick');
     this.hitEl = undefined;
     this.physics.world.removeConstraint(this.constraint);
     this.constraint = null;
     scene = this.el.sceneEl;
     scene.grabbingControllers--;
     if(scene.grabbingControllers == 0){
-      sendNewCoords(scene.grabNum);
-      scene.grabNum++;
+      // if no controllers are grabbing, call sendNewCoords to create linkers and all for
+      // the current domain configuration
+      sendNewCoords(scene.version);
+      scene.version++;
     }
     this.holdEl = null;
   },
@@ -117,7 +142,7 @@ AFRAME.registerComponent('action', {
   //     doms = document.querySelectorAll('.domain');
   //     links = document.querySelectorAll('.linker');
   //     for(i=0; i<doms.length; i++){
-  //       doms[i].emit('released');
+  //       doms[i].emit('stick');
   //     }
   //     for(i=0; i<links.length; i++){
   //       THREE.SceneUtils.detach(links[i].object3D, this.el.object3D, this.el.sceneEl.object3D);
@@ -146,39 +171,24 @@ AFRAME.registerComponent('action', {
     scene.grabbingControllers++;
 
     // Make linkers directly affected by this move vanish
-    boxes = hitEl.boxes;
-    lines = [];
-    links = [];
-    for(var i=0; i<boxes.length; i++){
-      line = boxes[i].getAttribute('line');
-      lines.push(line);
-      link = boxes[i].getAttribute('link');
-      links.push(link);
-    }
-    this.lines = lines;
-    for(var i=0; i<links.length; i++){
-      linker = document.getElementById('link' + links[i]);
-      linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
-      linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
-    }
+    vanishLinkers(this, hitEl);
 
-    doms = document.querySelectorAll('.domain');
-    doms = doms.length;
-    domsForStr = doms - 1;
-    linkers = document.querySelectorAll('.linker');
-    linkers = linkers.length;
+    domains = document.querySelectorAll('.domain').length;
+    domainsForStr = domains - 1;
+    linkers = document.querySelectorAll('.linker').length;
     linkersForStr = linkers - 1;
     scene = document.getElementById('scene');
     shift = scene.shift;
-    leftover = linkers - shift - doms;
+    leftover = linkers - shift - domains;
 
-    // if holding the first domain, check for starting linker and make it vanish
+    // if holding the first domain, check for leading linker and make it vanish
     if(hitEl.id == 'dom0' && shift == 1){
       linker = document.getElementById('link0');
       linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
       linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
     }
-    // if holding the last domain, check for ending linker and make it vanish
+    // if holding the last domain, check for trailing linker and make it vanish
+    // if leftover is 0 it means there is an trailing linker
     if(hitEl.id == 'dom' + domsForStr && leftover == 0){
       linker = document.getElementById('link' + linkersForStr);
       linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
