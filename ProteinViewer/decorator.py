@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden
 def checkSession(function):
 	# check if current user is the user that created the current ViewingSession
 	
-	def wrapper(*args, **kw):
+	def wrapper(*args, **kw): 
 		if len(args) == 1:
 			request = args[0]
 			session_id = request.session.session_key
