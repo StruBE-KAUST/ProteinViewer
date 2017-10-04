@@ -1,8 +1,25 @@
 from django.apps import AppConfig
 
 
-class ProteinviewerConfig(AppConfig):
+class ProteinViewerConfig(AppConfig):
+    """Configuration of ProteinViewer application."""
+
+    # pylint: disable=too-many-instance-attributes
+
     name = 'ProteinViewer'
+    verbose_name = 'ProteinViewer'
+
+    def __init__(self, *args, **kwargs):
+        """Create a new configuration."""
+        super(ProteinViewerConfig, self).__init__(*args, **kwargs)
+
+        # Days between creation of a session and removal of the associated files
+        self.session_delay = None
+
+    def ready(self):
+        """Populate the configuration with default values."""
+        # TODO: Read from config.ini file
+        self.session_delay = 7
 
 class CalledAppsConfig():
     # meshpath = 'C:/Program Files/VCG/MeshLab'
