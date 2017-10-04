@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+import Biskit as B
+import re
+
 
 SUCCESS_STATE = 1
 RUNNING_STATE = 0
@@ -30,34 +33,187 @@ class ViewingSession(models.Model):
 	# fields for the loading process:
 	process_status = models.IntegerField(default=RUNNING_STATE)
 
-	# def checkSequence(self, all_residue_ranges):
-	# 	'''
-	# 	Given all the residue ranges, checks to make sure the given sequence is covered exactly
-	# 	@param all_residue_ranges: a list of lists giving the residue ranges for all
-	# 							the domains and linkers in the molecule
-	# 	@type all_residue_ranges: list of lists
-	# 	'''
-	# 	sequence = self.sequence.encode('ascii')
-	# 	last_residue = len(sequence) - 1
+	def createDomains(self):
+		"""
+		Find the residue ranges for each domain using the pdb files and sequence
+		by matching the sequence extracted from the pdb file to the given sequence
+		@param self: the current viewing session object
+		@type self: ViewingSession
 
-	# 	print last_residue
+		@return domain_residue_ranges: the residue ranges for each domain
+		@rtype domain_residue_ranges: list of lists
+		"""
 
-	# 	prev = 0
+		number_of_domains = self.number_of_domains
+		temporary_directory = self.temporary_directory
+		sequence = self.sequence
 
-	#	# careful with the logic here, because we made linkers and domains overlap 
-	# 	# by a residue.. need to somehow allow for the overlap but not miss a missing piece..
-	# 	for residue_range in all_residue_ranges:
-	# 		print residue_range
-	# 		if residue_range[0] != prev:
-	# 			return FAILED_STATE
-	# 		prev = residue_range[1]
+		domain_residue_ranges = []
 
-	# 	print prev
+		for i in xrange(int(number_of_domains)):
+		    m = B.PDBModel('{}'.format(temporary_directory) + '/pdb' + str(i) + '.pdb')
+		    m = m.compress(m.maskProtein())
+		    s = m.sequence()
 
-	# 	if prev != last_residue:
-	# 		return FAILED_STATE
+		    # use regex to match the pdb sequence to the given sequence
+		    match = re.search(s, sequence)
+		    domain_residues = match.span()
+		    domain_residues = [domain_residues[0], domain_residues[1]]
+		    domain_residue_ranges.append(domain_residues)
 
-	# 	return SUCCESS_STATE
+		    for dom in domain_residue_ranges:
+		    	newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=self)
+		    	newDomain.save()
+
+		return domain_residue_ranges
+
+
+	def createLinkers(self, domain_residue_ranges):
+		"""
+		Use the domain ranges and the sequence to find the linkers' residue ranges
+		by checking for residue ranges in the sequence that are not covered by domains
+		@param self: the current viewing session
+		@type self: ViewingSession
+		@param domain_residue_ranges: the residue ranges for all domains
+		@type domain_residue_ranges: list
+
+		@return linker_residue_ranges: residue ranges for all linkers
+		@rtype: list of lists
+		"""
+		sequence = self.sequence
+
+		prev = 0
+		end = len(sequence)
+		linker_residue_ranges = []
+
+		for i in xrange(len(domain_residue_ranges)):
+		    domain_residues = domain_residue_ranges[i]
+		    if domain_residues[0] == prev and prev == 0:
+		    	# there is no leading linker
+		        prev = domain_residues[1]
+		    elif domain_residues[0] != prev and prev == 0:
+		    	# there is a leading linker
+		        linker_residues = [prev, domain_residues[0] + 1]
+		        linker_residue_ranges.append(linker_residues)
+		        prev = domain_residues[1]
+		    elif domain_residues[0] != prev:
+		    	# there is a linker present between this and the previous domain
+		        linker_residues = [prev - 1, domain_residues[0] + 1]
+		        linker_residue_ranges.append(linker_residues)
+		        prev = domain_residues[1]
+		    else:
+		    	# there is no linker present between this and the previous domain; 
+		    	# place "linker" for continuity
+		        linker_residues = [domain_residues[0] - 1, domain_residues[0] + 1]
+		        linker_residue_ranges.append(linker_residues)
+		        prev = domain_residues[1]
+
+		num_linkers = len(linker_residue_ranges)
+		number_of_domains = self.number_of_domains
+
+		if linker_residue_ranges[num_linkers - 1][1] != end and domain_residue_ranges[number_of_domains - 1][1] != end:
+			# there is a trailing linker
+		    linker_residues = [prev - 1, end]
+		    linker_residue_ranges.append(linker_residues)
+
+		for link in linker_residue_ranges:
+			newLinker = Linker(first_residue_number=link[0], last_residue_number=link[1], viewing_session=self)
+			newLinker.save()
+
+		return linker_residue_ranges
+
+	def createLines(self):
+		'''
+		Create lines to go between the boxes; there will always be an even number of boxes
+		'''
+		number_of_lines = self.number_of_lines
+
+		for i in xrange(number_of_lines):
+			line_id = "line" + str(i)
+			line_start_box = "box" + str(i*2)
+			line_end_box = "box" + str((i*2)+1)
+
+			l = Line(line_id=line_id, line_start_box=line_start_box, line_end_box=line_end_box, viewing_session=self)
+			l.save()
+
+	def createBoxes(self, details):
+		'''
+		Create the box entities and save them to the database
+		@param details: dictionary containing information of a shift for starting linker, 
+		and a list of the x,y,z positions of all the boxes
+		@type details: dictionary
+		'''
+		box_details = details['box_details']
+		shifted_for_linker = details['shifted_for_linker']
+
+		linker_number = 0
+		for i in xrange(len(box_details)):
+			if i % 2 != 0:
+				linker_number = linker_number + 1
+
+			box_id = "box" + str(i)
+			box_position = str(box_details[i][0][0]) + ' ' + str(box_details[i][0][1]) + ' ' + str(box_details[i][0][2])
+			box_target = "dom" + str(box_details[i][1])
+			box_line = str(linker_number)
+			box_link = str(linker_number + shifted_for_linker)
+
+			b = Box(box_id=box_id, box_position=box_position, box_target=box_target, box_line=box_line, box_link=box_link, viewing_session=self)
+			b.save()
+
+	def createEntities(self, type_of_piece):
+		'''
+		Creates count number of the piece of given type, either domains or linkers,
+		and saves them to the database.
+		@param type_of_piece: the type of "piece", either "dom" or "link" for domain or linker
+		@type type_of_piece: string
+
+		'''
+
+		# TODO: when hull colliders are used, remove physics properties on the domain
+		# and put "follow" component instead. Place physics properties on the hull collider
+
+		form_id = self.form_id
+
+		if type_of_piece == DOMAIN:
+			number_of_pieces = self.number_of_domains
+		else:
+			number_of_pieces = self.number_of_linkers
+
+		for i in xrange(number_of_pieces):
+			if type_of_piece == "dom":
+				obj_name = type_of_piece + str(i) + '.obj'
+				mtl_name = type_of_piece + str(i) + '.mtl'
+			elif type_of_piece == "link":
+				obj_name = type_of_piece + str(i) + '.0.obj'
+				mtl_name = type_of_piece + str(i) + '.0.mtl'
+			else:
+				return
+
+			obj_id = type_of_piece + "_model" + str(i)
+			obj_src = "/media/{}/".format(form_id) + obj_name
+			mtl_id = type_of_piece + "_mat" + str(i)
+			mtl_src = "/media/{}/".format(form_id) + mtl_name 
+
+			a = Asset(obj_id=obj_id, obj_src=obj_src, mat_id=mtl_id, mat_src=mtl_src, viewing_session=self)
+			a.save()
+
+
+			if type_of_piece == "dom":
+				entity_id = type_of_piece + str(i)
+				entity_obj = "#dom_model" + str(i)
+				entity_mat = "#dom_mat" + str(i)
+				entity_class = "domain"
+				entity_mixin = "dymol"
+			else:
+				entity_id = type_of_piece + str(i)
+				entity_obj = "#link_model" + str(i)
+				entity_mat = "#link_mat" + str(i)
+				entity_class = "linker"
+				entity_mixin = "dylink"
+
+			e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, viewing_session=self)
+			e.save()
+
 
 
 class Linker(models.Model):

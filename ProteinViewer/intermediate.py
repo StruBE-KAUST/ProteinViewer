@@ -14,11 +14,19 @@ from models import Entity
 from models import Box
 from models import Line
 from django.http import HttpResponseForbidden
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
 
 from models import SUCCESS_STATE
 from models import RUNNING_STATE
 from models import FAILED_STATE
+from decorator import checkSession
 
+from views import SubmitPdbFileView
+
+@checkSession
 def page(request, form_id):
 	"""
 	If the files are ready, loads the viewer page, and if not, loads the loading page
@@ -29,15 +37,7 @@ def page(request, form_id):
 
 	@return: HttpResponseObject
 	"""
-	# check if session matches user
-	current_viewing_session = ViewingSession.objects.get(form_id = form_id)
-	session_id = request.session.session_key
-
-	original_session_id = current_viewing_session.session_id
-	
-	if original_session_id != session_id:
-		return HttpResponseForbidden()
-
+	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
 	process_status = current_viewing_session.process_status
 
 	if process_status == RUNNING_STATE:
@@ -47,7 +47,6 @@ def page(request, form_id):
 		# subprocess completed, .obj files ready to be used
 		domain_residue_ranges = []
 		linker_residue_ranges = []
-		all_residue_ranges = []
 
 		domains = Domain.objects.filter(viewing_session=current_viewing_session)
 		for domain in domains:
@@ -59,16 +58,8 @@ def page(request, form_id):
 			residue_range = [linker.first_residue_number, linker.last_residue_number]
 			linker_residue_ranges.append(residue_range)
 
-		all_residue_ranges.extend(domain_residue_ranges)
-		all_residue_ranges.extend(linker_residue_ranges)
+		all_residue_ranges = domain_residue_ranges + linker_residue_ranges
 		all_residue_ranges = sorted(all_residue_ranges)
-
-		# call ViewingSession's class method to check if whole sequence is covered?
-		# or is that redundant?
-		# covered = current_viewing_session.checkSequence(all_residue_ranges)
-		# if covered == FAILED_STATE:
-		# 	print 'failed'
-		# 	return HttpResponseForbidden()
 
 		assets = Asset.objects.filter(viewing_session=current_viewing_session)
 		entities = Entity.objects.filter(viewing_session=current_viewing_session)
@@ -80,4 +71,6 @@ def page(request, form_id):
 	else:
 		# something failed (most likely Ranch: given domains are too far apart)
 		# TODO: Go back to the form!!
-		return HttpResponseForbidden()
+		# return HttpResponseForbidden()
+		messages.error(request, "The given domains' configuration is not valid. Please provide appropriate files")
+		return HttpResponseRedirect(reverse('ProteinViewer:home'))

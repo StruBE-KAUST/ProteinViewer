@@ -6,7 +6,6 @@ use in ranch.
 import Biskit as B 
 import json
 from django.http import HttpResponse
-from django.http import HttpResponseForbidden
 
 import numpy as np
 import os
@@ -15,6 +14,7 @@ from getLinker import getLinker
 from models import ViewingSession
 from models import Domain
 from models import Linker
+from decorator import checkSession
 
 def transformPdbs(matrices, number_of_domains, temporary_directory):
 	"""
@@ -58,7 +58,7 @@ def transformPdbs(matrices, number_of_domains, temporary_directory):
 		domain_transformed = domain.transform(matrix_numpy)
 		domain_transformed.writePdb('{}/pdb'.format(temporary_directory) + str(i) + '.pdb')
 
-
+@checkSession
 def returnData(request, form_id):
 	"""
 	saves new coordinates of the domains in aframe to pdb files
@@ -67,15 +67,7 @@ def returnData(request, form_id):
 	@param form_id: the form id taken from the request url
 	@type form_id: unicode
 	"""
-
-	# check if session matches user
 	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
-	session_id = request.session.session_key
-
-	original_session_id = current_viewing_session.session_id
-	
-	if original_session_id != session_id:
-		return HttpResponseForbidden()
 
 	domain_residue_ranges = []
 	linker_residue_ranges = []

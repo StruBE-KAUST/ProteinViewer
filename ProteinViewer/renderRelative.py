@@ -11,10 +11,10 @@ import os
 import logging
 
 from models import ViewingSession
-from django.http import HttpResponseForbidden
 from django.http import HttpResponse
+from decorator import checkSession
 
-
+@checkSession
 def renderRelative(request, form_id):
 	"""
 	Determines positions in a-frame to place each domain and linker so that
@@ -24,16 +24,7 @@ def renderRelative(request, form_id):
 
 	@return: HttpResponseObject
 	"""
-
-	# check if session matches user
-	current_viewing_session = ViewingSession.objects.get(form_id = form_id)
-	session_id = request.session.session_key
-
-	original_session_id = current_viewing_session.session_id
-	
-	if original_session_id != session_id:
-		return HttpResponseForbidden()
-
+	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
 	log = logging.getLogger(__name__)
 
 	number_of_domains = current_viewing_session.number_of_domains

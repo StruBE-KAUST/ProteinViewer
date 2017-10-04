@@ -14,6 +14,7 @@
 	- Linker, Domain, Asset and Entity to models.py
 	- Asset and entity creation done in viewer.html instead of load.py
 	- Code refactoring; broke long functions into smaller, testable ones
+	- Use decorator to check for session match
 
 ### Changed:
 	- In viewer.html, changed access to static files

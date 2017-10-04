@@ -18,7 +18,6 @@ import time
 
 from models import FAILED_STATE
 
-
 ranch = None
 
 class CustomTimer(_Timer):

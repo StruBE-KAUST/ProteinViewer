@@ -37,5 +37,6 @@ AFRAME.registerComponent('startup', {
       box.emit('follow');
     }
   }
-}
 });
+
+

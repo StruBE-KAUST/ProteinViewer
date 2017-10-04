@@ -112,12 +112,12 @@ class SubmitPdbFileView(View):
         number_of_domains = len(request.FILES.getlist('pdb_files'))
 
         post = form.save(commit=False)
-        post.form_id = form_id
-        post.session_id = session_id
-        post.temporary_directory = temporary_directory
+        post.form_id = form_id.encode('ascii')
+        post.session_id = session_id.encode('ascii')
+        post.temporary_directory = temporary_directory.encode('ascii')
         post.number_of_domains = number_of_domains
-        post.representation = representation
-        post.sequence = sequence
+        post.representation = representation.encode('ascii')
+        post.sequence = sequence.encode('ascii')
         post.save()
 
         subprocess.Popen('python manage.py loadview ' + form_id + ' ' + session_id, shell=True)
