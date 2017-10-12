@@ -9,7 +9,7 @@ from django.http import HttpResponse
 
 import numpy as np
 import os
-from getLinker import getLinker
+from getLinker import ranchRunner
 
 from models import ViewingSession
 from models import Domain
@@ -27,6 +27,7 @@ def transformPdbs(matrices, number_of_domains, temporary_directory):
 	@param temporary_directory: directory for the user
 	@type temporary_directory: unicode
 	"""
+
 	for i in xrange(number_of_domains):
 		matrix = matrices[i]
 		matrix = map(float, matrix.split(','))
@@ -36,20 +37,20 @@ def transformPdbs(matrices, number_of_domains, temporary_directory):
 		# turn the translation parts of the matrix to the right scale and add on
 		# the initial position given by renderRelative
 		matrix[3] = matrix[3]*20 + center[0]
-		matrix[7] = matrix[7]*20 + center[0]
-		matrix[11] = matrix[11]*20 + center[0]
+		matrix[7] = matrix[7]*20 + center[1]
+		matrix[11] = matrix[11]*20 + center[2]
 	
 		matrix_subbed = []
 		matrix_temp = []
 		
-		for k in range(len(a)):
+		for k in range(len(matrix)):
 			matrix_temp.append(matrix[k])
 			if k==3 or k==7 or k==11 or k==15:
 				matrix_subbed.append(matrix_temp)
 				matrix_temp = []
 
 
-		matrix = np.array(asubbed)
+		matrix = np.array(matrix_subbed)
 		matrix_numpy = np.ndarray(shape=(4,4), dtype=float, buffer=matrix)
 
 		# use the matrice on the pdb files and save as new pdbs
@@ -93,6 +94,8 @@ def returnData(request, form_id):
 	presses = request.POST.get('presses')
 	version = request.POST.get('version')
 
+	print version
+
 	number_of_domains = current_viewing_session.number_of_domains
 	number_of_linkers = current_viewing_session.number_of_linkers
 	matrices = []
@@ -104,7 +107,8 @@ def returnData(request, form_id):
 	transformPdbs(matrices, number_of_domains, temporary_directory)
 
 	# use getLinker to run ranch, pulchra etc. to get new linker
-	run_programs = getLinker(domain_residue_ranges, all_residue_ranges, False, version, representation, temporary_directory)
+
+	run_programs = ranchRunner.getLinker(ranchRunner(), domain_residue_ranges, all_residue_ranges, False, version, representation, temporary_directory)
 	json_array = json.dumps([presses, version, run_programs])
 
 	return HttpResponse(json_array, content_type="application/json")

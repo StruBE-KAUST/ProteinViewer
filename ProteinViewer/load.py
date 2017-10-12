@@ -16,11 +16,12 @@ from models import FAILED_STATE
 from models import SUCCESS_STATE
 from models import NO_SHIFT
 from models import SHIFT
+from models import EMPTY
 
 import time
 import Biskit as B
 
-from getLinker import getLinker
+from getLinker import ranchRunner
 from decorator import checkSession
 
 def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_ranges, temporary_directory):
@@ -53,6 +54,10 @@ def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_rang
 	shifted_for_linker = NO_SHIFT
 	linker_ranges = list(linker_residue_ranges)
 
+	if len(linker_ranges) == 0:
+		return {'shifted_for_linker': 0, 'box_details': []}
+
+
 	if linker_ranges[0] == all_residue_ranges[0]:
 	    linker_ranges.remove(linker_ranges[0])
 	    shifted_for_linker = SHIFT
@@ -73,14 +78,18 @@ def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_rang
 	    start = m.takeResidues([extremes[0]])
 	    end = m.takeResidues([extremes[1]])
 	    startXyz = start.getXyz()*0.05
-	    first = startXyz[0].tolist()
+	    # first = startXyz[0].tolist()
+	    # first = startXyz[len(startXyz) - 1].tolist()
+	    first = ((startXyz[0] + startXyz[len(startXyz) - 1])/2).tolist()
 	    endXyz = end.getXyz()*0.05
 	    # endXyz[0] seems to be better even though endXyz[len(endXyz) - 1] is the actual end..
-	    end = endXyz[len(endXyz) - 1].tolist()
+	    last = ((endXyz[0] + endXyz[len(endXyz) - 1])/2).tolist()
+	    # last = endXyz[0].tolist()
+	    # last = endXyz[len(endXyz) - 1].tolist()
 	    if i != 0:
 	        start_positions.append(first)
 	    if i != number_of_domains - 1:
-	        end_positions.append(end)
+	        end_positions.append(last)
 
 
 	domain_number = 0
@@ -97,6 +106,8 @@ def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_rang
 	        domain_number = domain_number + 1
 	        box_details.append([start_positions[0], domain_number])
 	        start_positions.remove(start_positions[0])
+
+	print box_details
 
 	return {'shifted_for_linker': shifted_for_linker, 'box_details': box_details}
 
@@ -118,13 +129,19 @@ def load(form_id, session_id):
 
 	start_time = time.time()
 	domain_residue_ranges = current_viewing_session.createDomains()
+
 	linker_residue_ranges = current_viewing_session.createLinkers(domain_residue_ranges)
 
 	# use domain_residue_ranges and linker_residue_ranges to get all_residue_ranges
 	all_residue_ranges = domain_residue_ranges + linker_residue_ranges
 	all_residue_ranges = sorted(all_residue_ranges)
 
-	counts = getLinker(domain_residue_ranges, all_residue_ranges, True, 0, representation, temporary_directory)
+	if all_residue_ranges == EMPTY:
+		current_viewing_session.process_status = FAILED_STATE
+		current_viewing_session.save()
+		return
+
+	counts = ranchRunner.getLinker(ranchRunner(), domain_residue_ranges, all_residue_ranges, True, 0, representation, temporary_directory)
 	
 	if counts == FAILED_STATE: 
 		# ranch was killed; domains too far apart

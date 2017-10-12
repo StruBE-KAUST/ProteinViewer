@@ -5,6 +5,8 @@ Runs the load script. This management command was created to allow load.py to ru
 from django.core.management.base import BaseCommand, CommandError
 from ProteinViewer.models import ViewingSession
 from ProteinViewer.load import load
+from django.contrib import messages
+
 
 # import additional classes/modules as needed
 # from myapp.models import Book

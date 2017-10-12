@@ -2,7 +2,7 @@
 Helper functions called by the scripts written in viewer.html
 */
 
-function changeLineColor(color, reset){
+function changeLineColors(color, reset){
 	/*
 	Changes the color of the lines in the document. If reset is true, resets the line lengths as well
 	@param color: the hex color to change the line color to
@@ -52,6 +52,7 @@ function setLinkerPositions(linker_positions, change_linker){
 	*/
 	scene = document.getElementById('scene');
 	temporary_directory = scene.temporary_directory;
+	form_id = scene.form_id;
 	version = scene.version;
 
 	for(var i=0; i<linker_positions.length; i++){
@@ -60,9 +61,15 @@ function setLinkerPositions(linker_positions, change_linker){
 	  piece = document.getElementById('link' + i);
 	  piece.setAttribute('position', position_str);
 
+
+	  /// TODO: HERE! PROBELM IS HERE! Now how to fix..
+	  /// basically not accessing temporary directory files..
+
 	  if(change_linker == true){
-	  	piece.setAttribute('obj-model', 'obj', temporary_directory + '/link' + i + '.' + version + '.obj');
-	  	piece.setAttribute('obj-model', 'mtl', temporary_directory + '/link' + i + '.' + version + '.mtl');
+	  	console.log('try change model');
+	  	console.log(window.location.pathname);
+	  	piece.setAttribute('obj-model', 'obj', '/media/' + form_id + '/link' + i + '.' + version + '.obj');
+	  	piece.setAttribute('obj-model', 'mtl', '/media/' + form_id + '/link' + i + '.' + version + '.mtl');
 	  }
 	}
 }
@@ -104,6 +111,7 @@ function makeMatrices(pass){
 
     pass['mat' + i] = matrix;
     scene.domain_positions['dom' + i] = [position['x'], position['y'], position['z']];
+  
   }
 }
 
@@ -112,6 +120,8 @@ function runRelative(data, change_linker){
 	Runs the ajax call to renderRelative.
 	@param data: holds the values that will be passed as the ajax call data
 	@type data: dictionary
+	@param change_linker: whether or not the linker's obj file needs to change
+	@type change_linker: boolean
 	*/
 	$.ajax({
 	  async: true,

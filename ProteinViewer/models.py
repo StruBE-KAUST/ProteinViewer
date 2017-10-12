@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib import messages
 import Biskit as B
 import re
 
@@ -13,6 +14,8 @@ NO_SHIFT = 0
 
 DOMAIN = "dom"
 LINKER = "link"
+
+EMPTY = []
 
 
 # Create your models here.
@@ -48,22 +51,32 @@ class ViewingSession(models.Model):
 		temporary_directory = self.temporary_directory
 		sequence = self.sequence
 
+		if number_of_domains == 0:
+			print 'no domains!'
+			return EMPTY
+
 		domain_residue_ranges = []
 
 		for i in xrange(int(number_of_domains)):
 		    m = B.PDBModel('{}'.format(temporary_directory) + '/pdb' + str(i) + '.pdb')
+		    # supposed to clean..?:
 		    m = m.compress(m.maskProtein())
 		    s = m.sequence()
+		    print s
 
 		    # use regex to match the pdb sequence to the given sequence
 		    match = re.search(s, sequence)
+		    if match == None:
+		    	# if ANY of the "domains" given by the user don't match, produce error
+		    	print 'Pdbs do not match sequence'
+		    	return EMPTY
 		    domain_residues = match.span()
 		    domain_residues = [domain_residues[0], domain_residues[1]]
 		    domain_residue_ranges.append(domain_residues)
 
-		    for dom in domain_residue_ranges:
-		    	newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=self)
-		    	newDomain.save()
+		for dom in domain_residue_ranges:
+			newDomain = Domain(first_residue_number=dom[0], last_residue_number=dom[1], viewing_session=self)
+			newDomain.save()
 
 		return domain_residue_ranges
 
@@ -85,6 +98,9 @@ class ViewingSession(models.Model):
 		prev = 0
 		end = len(sequence)
 		linker_residue_ranges = []
+
+		if domain_residue_ranges == EMPTY:
+			return EMPTY
 
 		for i in xrange(len(domain_residue_ranges)):
 		    domain_residues = domain_residue_ranges[i]
@@ -110,6 +126,10 @@ class ViewingSession(models.Model):
 
 		num_linkers = len(linker_residue_ranges)
 		number_of_domains = self.number_of_domains
+
+		if num_linkers == 0:
+			print 'no linkers!'
+			return EMPTY
 
 		if linker_residue_ranges[num_linkers - 1][1] != end and domain_residue_ranges[number_of_domains - 1][1] != end:
 			# there is a trailing linker
@@ -148,14 +168,15 @@ class ViewingSession(models.Model):
 
 		linker_number = 0
 		for i in xrange(len(box_details)):
-			if i % 2 != 0:
-				linker_number = linker_number + 1
 
 			box_id = "box" + str(i)
-			box_position = str(box_details[i][0][0]) + ' ' + str(box_details[i][0][1]) + ' ' + str(box_details[i][0][2])
+			box_position = str(box_details[i][0][0]) + " " + str(box_details[i][0][1]) + " " + str(box_details[i][0][2])
 			box_target = "dom" + str(box_details[i][1])
 			box_line = str(linker_number)
 			box_link = str(linker_number + shifted_for_linker)
+
+			if i % 2 != 0:
+				linker_number = linker_number + 1
 
 			b = Box(box_id=box_id, box_position=box_position, box_target=box_target, box_line=box_line, box_link=box_link, viewing_session=self)
 			b.save()

@@ -29,6 +29,7 @@
         scene.shift = {{ shift }};
         // parameter used in sendNewCoods
         scene.temporary_directory = "{{ temporary_directory }}";
+        scene.form_id = "{{ form_id }}"
         // initialize parameters used in runRelative
         scene.domain_positions = {};
         scene.presses = 0;
@@ -40,19 +41,20 @@
       });      
     </script>
     <script>
-    function sendNewCoords(version){
+    function sendNewCoordinates(version){
       /*
         Send coordinates from aframe to pdbs by making an ajax call to aframeData
         @param version: the version of the molecule configuration we're on
         @type version: int
       */
+
       FAILED_STATE = -1;
 
       scene = document.getElementById('scene');
       presses = scene.presses;
       scene.loading = true;
 
-      representation = {{ representation }};
+      representation = "{{ representation }}";
 
       // lines change color to indicate loading
       changeLineColors('#ffff00', false);
@@ -128,7 +130,7 @@
     {% endfor %}
 
     {% for box in boxes %} 
-      <a-entity id={{box.box_id}} mixin="cube" class="collision" position={{box.position}} meterial="transparent: true; opacity: 0" follow="target: {{box.target}}" line={{box.line}}></a-entity>
+      <a-entity id={{box.box_id}} mixin="cube" class="collision" position='{{box.box_position}}' material="transparent: true; opacity: 0" follow="target: {{box.box_target}}" line={{box.box_line}} link={{box.box_link}}></a-entity>
     {% endfor %}
 
     {% for line in lines %}

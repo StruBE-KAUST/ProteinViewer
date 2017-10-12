@@ -1,4 +1,4 @@
-function vanishLinkers(controller, hitEl){
+function vanishLinkers(controller){
   /*
   Makes linkers directly affected by this move vanish
   @param controller: the controller making the move
@@ -6,7 +6,7 @@ function vanishLinkers(controller, hitEl){
   @param hitEl: the element hit by the controller
   @type hitEl: TODO: Enter type
   */
-  boxes = hitEl.boxes;
+  boxes = controller.hitEl.boxes;
   lines = [];
   links = [];
   for(var i=0; i<boxes.length; i++){
@@ -16,15 +16,16 @@ function vanishLinkers(controller, hitEl){
     links.push(link);
   }
   controller.lines = lines;
+
+  console.log(lines);
+  console.log(links);
+
   for(var i=0; i<links.length; i++){
     linker = document.getElementById('link' + links[i]);
     linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
     linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');
   }
 }
-
-
-
 
 
 AFRAME.registerComponent('action', {
@@ -89,18 +90,18 @@ AFRAME.registerComponent('action', {
     if (!hitEl) { return; }
     // if there is an entity, release it by removing the lock constraint that holds
     // it to the controller
+    this.physics.world.removeConstraint(this.constraint);
+    this.constraint = null;
     hitEl.removeState(this.GRABBED_STATE);
     hitEl.emit('stick');
     this.hitEl = undefined;
-    this.physics.world.removeConstraint(this.constraint);
-    this.constraint = null;
     scene = this.el.sceneEl;
     scene.grabbingControllers--;
     if(scene.grabbingControllers == 0){
-      // if no controllers are grabbing, call sendNewCoords to create linkers and all for
+      // if no controllers are grabbing, call sendNewCoordinates to create linkers and all for
       // the current domain configuration
-      sendNewCoords(scene.version);
       scene.version++;
+      sendNewCoordinates(scene.version);
     }
     this.holdEl = null;
   },
@@ -171,7 +172,7 @@ AFRAME.registerComponent('action', {
     scene.grabbingControllers++;
 
     // Make linkers directly affected by this move vanish
-    vanishLinkers(this, hitEl);
+    vanishLinkers(this);
 
     domains = document.querySelectorAll('.domain').length;
     domainsForStr = domains - 1;
@@ -189,7 +190,7 @@ AFRAME.registerComponent('action', {
     }
     // if holding the last domain, check for trailing linker and make it vanish
     // if leftover is 0 it means there is an trailing linker
-    if(hitEl.id == 'dom' + domsForStr && leftover == 0){
+    if(hitEl.id == 'dom' + domainsForStr && leftover == 0){
       linker = document.getElementById('link' + linkersForStr);
       linker.setAttribute('obj-model', 'obj', '../../media/empty.obj');
       linker.setAttribute('obj-model', 'mtl', '../../media/empty.mtl');

@@ -20,6 +20,8 @@ AFRAME.registerComponent('startup', {
   },
 
   startup: function (evt) {
+    console.log('sticking everything');
+
     this.el.startup = false;
     // called when a controller's trigger is pressed for the first time. Stick all elements to
     // the invisible box at the center and make cartoons follow their hull colliders.

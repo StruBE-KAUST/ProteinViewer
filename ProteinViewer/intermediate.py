@@ -66,11 +66,11 @@ def page(request, form_id):
 		boxes = Box.objects.filter(viewing_session=current_viewing_session)
 		lines = Line.objects.filter(viewing_session=current_viewing_session)
 
-		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory}
+		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
 		return render(request, 'ProteinViewer/viewer.html', context)
 	else:
 		# something failed (most likely Ranch: given domains are too far apart)
 		# TODO: Go back to the form!!
 		# return HttpResponseForbidden()
-		messages.error(request, "The given domains' configuration is not valid. Please provide appropriate files")
+		messages.error(request, "Domain configuration is not possible. Please select appropriate files.")
 		return HttpResponseRedirect(reverse('ProteinViewer:home'))
