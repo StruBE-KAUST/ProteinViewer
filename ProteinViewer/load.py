@@ -57,10 +57,16 @@ def getBoxDetails(domain_residue_ranges, linker_residue_ranges, all_residue_rang
 	if len(linker_ranges) == 0:
 		return {'shifted_for_linker': 0, 'box_details': []}
 
+	print len(linker_ranges)
+	print len(all_residue_ranges)
 
 	if linker_ranges[0] == all_residue_ranges[0]:
 	    linker_ranges.remove(linker_ranges[0])
 	    shifted_for_linker = SHIFT
+
+	if len(linker_ranges) == 0:
+		return {'shifted_for_linker': 1, 'box_details': []}
+
 	if linker_ranges[len(linker_ranges) - 1] == all_residue_ranges[len(all_residue_ranges) - 1]:
 	    linker_ranges.remove(linker_ranges[len(linker_ranges) - 1])
 
@@ -132,6 +138,9 @@ def load(form_id, session_id):
 
 	linker_residue_ranges = current_viewing_session.createLinkers(domain_residue_ranges)
 
+	print 'linkers'
+	print linker_residue_ranges
+
 	# use domain_residue_ranges and linker_residue_ranges to get all_residue_ranges
 	all_residue_ranges = domain_residue_ranges + linker_residue_ranges
 	all_residue_ranges = sorted(all_residue_ranges)
@@ -143,6 +152,9 @@ def load(form_id, session_id):
 
 	counts = ranchRunner.getLinker(ranchRunner(), domain_residue_ranges, all_residue_ranges, True, 0, representation, temporary_directory)
 	
+	# re-assign current_viewing_session to get the altered object
+	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
+
 	if counts == FAILED_STATE: 
 		# ranch was killed; domains too far apart
 	    current_viewing_session.process_status = FAILED_STATE

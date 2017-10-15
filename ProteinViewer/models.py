@@ -32,6 +32,7 @@ class ViewingSession(models.Model):
 	sequence = models.CharField(max_length=100000, default='')
 	number_of_lines = models.IntegerField(default=0)
 	shifted_for_linker = models.IntegerField(default=0)
+	error_message = models.CharField(max_length=1000, default='')
 
 	# fields for the loading process:
 	process_status = models.IntegerField(default=RUNNING_STATE)
@@ -124,8 +125,15 @@ class ViewingSession(models.Model):
 		        linker_residue_ranges.append(linker_residues)
 		        prev = domain_residues[1]
 
-		num_linkers = len(linker_residue_ranges)
 		number_of_domains = self.number_of_domains
+		last_domain_residue = domain_residue_ranges[number_of_domains - 1][1]
+
+		if len(sequence) != last_domain_residue:
+			linker_residues = [last_domain_residue - 1, len(sequence)]
+			linker_residue_ranges.append(linker_residues)
+			prev = len(sequence)
+
+		num_linkers = len(linker_residue_ranges)
 
 		if num_linkers == 0:
 			print 'no linkers!'

@@ -69,8 +69,12 @@ def page(request, form_id):
 		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
 		return render(request, 'ProteinViewer/viewer.html', context)
 	else:
-		# something failed (most likely Ranch: given domains are too far apart)
-		# TODO: Go back to the form!!
-		# return HttpResponseForbidden()
-		messages.error(request, "Domain configuration is not possible. Please select appropriate files.")
+		# something failed - take error message from the model
+		error_message = current_viewing_session.error_message 
+		if error_message != '':
+			# if ranch failed, output message that gives the reason (too far or alignment)
+			messages.error(request, error_message)
+		else:
+			# if ranch hasn't run yet, the pdb files' sequence doesn't match the sequence given
+			messages.error(request, "Pdbs don't match the sequence. Please select appropriate files.")
 		return HttpResponseRedirect(reverse('ProteinViewer:home'))

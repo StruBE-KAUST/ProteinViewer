@@ -6,10 +6,13 @@ pieces and run them through VMD (and meshlab) for rendering
 
 import os
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
 import signal
 import threading
+from subprocess import Popen, PIPE, STDOUT
 from .apps import CalledAppsConfig
+from django.conf import settings
+from models import ViewingSession
+
 
 from threading import _Timer
 
@@ -98,21 +101,25 @@ class ranchRunner():
 			self.last_string = line
 			print line
 
-	def killRanch(self):
+	def killRanch(self, current_viewing_session):
 		"""
 		Kills ranch
 		"""
+		# ranch = self.ranch
+		# print "Domains are too far apart"
+		# os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
 
 		ranch = self.ranch
-		print "Domains are too far apart"
-		os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
 
-		# ranch = self.ranch
-		# if ranch:
-		# 	print "Domains are too far apart"
-		# 	os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
-		# else:
-		# 	print "Sequence doesn't match"
+		if ranch.poll() == None:
+			os.killpg(os.getpgid(ranch.pid), signal.SIGTERM)
+			message = "Domains are too far apart, or overlapping. Please select appropriate files."
+			current_viewing_session.error_message = message
+			current_viewing_session.save()
+		else:
+			message = "Domains can't be aligned to sequence. Please select appropriate files."
+			current_viewing_session.error_message = message
+			current_viewing_session.save()
 
 		return True
 
@@ -146,8 +153,9 @@ class ranchRunner():
 		@return: the number of domains and the number of linkers
 		@rtype: list
 		'''
-		print 'version'
-		print version
+
+		print 'all residues'
+		print all_residue_ranges
 
 		number_of_domains = 0
 		number_of_linkers = 0
@@ -234,10 +242,13 @@ class ranchRunner():
 		@rtype: list [int, int]
 		"""
 
+		form_id = temporary_directory[len(settings.MEDIA_ROOT):len(temporary_directory)]
+		current_viewing_session = ViewingSession.objects.get(form_id=form_id)
+
 		start_time = time.time()
 
 		# allow ranch 5 seconds to determine if configuration is valid
-		timer = CustomTimer(3, self.killRanch)
+		timer = CustomTimer(3, self.killRanch, kwargs={'current_viewing_session': current_viewing_session})
 		reader = threading.Thread(target=self.runRanch, args=[domain_residue_ranges, timer, do_all, temporary_directory])
 		timer.start()
 		reader.start()
@@ -253,9 +264,6 @@ class ranchRunner():
 
 		ranch_time = end_time - start_time
 		print 'Ranch takes ' + str(ranch_time) + ' to run'
-
-		# import pdb
-		# pdb.set_trace()
 
 		self.runPulchra(temporary_directory)
 		counts = self.cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all)
