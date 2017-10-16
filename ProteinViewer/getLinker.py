@@ -10,6 +10,7 @@ import signal
 import threading
 from subprocess import Popen, PIPE, STDOUT
 from .apps import CalledAppsConfig
+from .apps import ProteinViewerConfig
 from django.conf import settings
 from models import ViewingSession
 
@@ -104,6 +105,8 @@ class ranchRunner():
 	def killRanch(self, current_viewing_session):
 		"""
 		Kills ranch
+		@param current_viewing_session: the viewing session to attach the error message to
+		@type current_viewing_session: ViewingSession
 		"""
 		# ranch = self.ranch
 		# print "Domains are too far apart"
@@ -222,6 +225,33 @@ class ranchRunner():
 			vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 			vmd.wait()
 
+	def runMeshlab(self, current_viewing_session):
+		''' 
+		Runs meshlab on every .obj to lower the resolution. Runs meshlab on domains to produce convex hulls for use as hull colliders
+		@param current_viewing_session: the viewing session who's values to use
+		@type current_viewing_session: ViewingSession
+		'''
+
+		number_of_domains = current_viewing_session.number_of_domains
+		number_of_linkers = current_viewing_session.number_of_linkers
+
+		meshlab_path = CalledAppsConfig().meshlab_path
+		for i in xrange(number_of_domains):
+			obj_name = 'dom' + str(i) + '.obj'
+			# TODO: (Note) Using .obj to be able to override the material and make transparent; if .obj is too laggy, use .dae (but I don't know how to make .dae transparent)
+			hull_name = 'hull' + str(i) + '.obj'
+			# Run meshlab to lower resolution
+			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+			# need to wait for the previous call to finish because we want to use the lower resolution for the hull
+			meshlab.wait()
+			# Run meshlab to create convex hulls
+			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True)
+
+		for i in xrange(number_of_linkers):
+			obj_name = 'link' + str(i) + '.obj'
+			# run meshlab to lower resolution
+			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+
 	def getLinker(self, domain_residue_ranges, all_residue_ranges, do_all, version, representation, temporary_directory):	
 		"""
 		Runs ranch, pulchra, vmd (and meshlab) to produce the files needed for viewing
@@ -276,15 +306,10 @@ class ranchRunner():
 
 		self.runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
 
+		use_meshlab = ProteinViewerConfig.use_meshlab
 
-		# TODO: make everything work with meshlab; doesn't run on macos. Note, run meshlab
-		# on everything for lower resolution, but only on domains for the hull colliders. Hull colliders will 
-		# be produced at .dae models
-		# TODO: When we put in meshlab, we want to make sure that meshlab always runs after vmd finished running.. maybe 
-		# have a for loop to launch them per piece? And inside the "parallel" call we
-		# have synchronous calls to vmd then meshlab
-		# meshlab_path = CalledAppsConfig().meshlab_path
-		# subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshpath, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+		if use_meshlab == True:
+			self.runMeshlab(current_viewing_session)
 
 		return [number_of_domains, number_of_linkers]
 

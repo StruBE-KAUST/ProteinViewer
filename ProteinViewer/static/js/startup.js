@@ -23,16 +23,31 @@ AFRAME.registerComponent('startup', {
     console.log('sticking everything');
 
     this.el.startup = false;
+    scene = this.el.sceneEl;
     // called when a controller's trigger is pressed for the first time. Stick all elements to
     // the invisible box at the center and make cartoons follow their hull colliders.
     // Also make boxes follow their respective domains
-    var domains = this.el.querySelectorAll('.domain');
-    for(var i=0; i<domains.length; i++){
-      var domain = domains[i];
-      // TODO: emit stick on the hull colliders, and follow on the domain!
-      domain.emit('stick');
-      domain.emit('follow');
+    if(scene.use_hulls == 1){
+      var domains = this.el.querySelectorAll('.domain');
+      var hulls = this.el.querySelectorAll('.hull');
+      for(var i=0; i<domains.length; i++){
+        var domain = domains[i];
+        var hull = hulls[i];
+        // TODO: emit stick on the hull colliders, and follow on the domain!
+        hull.emit('stick');
+        domain.emit('follow');
+      }
+    } else {
+      var domains = this.el.querySelectorAll('.domain');
+      for(var i=0; i<domains.length; i++){
+        var domain = domains[i];
+        // TODO: emit stick on the hull colliders, and follow on the domain!
+        domain.emit('stick');
+        domain.emit('follow');
+      }
     }
+
+
     var boxes = this.el.querySelectorAll('.collision');
     for(var i=0; i<boxes.length; i++){
       var box = boxes[i];

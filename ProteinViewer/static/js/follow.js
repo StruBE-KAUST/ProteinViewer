@@ -22,6 +22,10 @@ AFRAME.registerComponent('follow', {
   },
 
   follow: function () {
+    if(this.data.target == ''){
+      return
+    }
+
     var target = document.getElementById(this.data.target);
 
     console.log(target);

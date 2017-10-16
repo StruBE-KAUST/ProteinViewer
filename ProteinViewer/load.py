@@ -190,6 +190,7 @@ def load(form_id, session_id):
 	# create the domain assets and entities
 	current_viewing_session.createEntities(DOMAIN)
 	current_viewing_session.createEntities(LINKER)
+
 	current_viewing_session.createBoxes(details)
 	current_viewing_session.createLines()
 

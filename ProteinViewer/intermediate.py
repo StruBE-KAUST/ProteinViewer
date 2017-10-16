@@ -17,6 +17,7 @@ from django.http import HttpResponseForbidden
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from .apps import ProteinViewerConfig
 
 
 from models import SUCCESS_STATE
@@ -66,7 +67,12 @@ def page(request, form_id):
 		boxes = Box.objects.filter(viewing_session=current_viewing_session)
 		lines = Line.objects.filter(viewing_session=current_viewing_session)
 
-		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
+		if ProteinViewerConfig.use_meshlab == True:
+			hulls = 1
+		else:
+			hulls = 0
+
+		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'hulls': hulls, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
 		return render(request, 'ProteinViewer/viewer.html', context)
 	else:
 		# something failed - take error message from the model

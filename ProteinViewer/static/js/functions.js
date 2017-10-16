@@ -22,11 +22,13 @@ function changeLineColors(color, reset){
 	}
 }
 
-function setDomainPositions(domain_positions){
+function setDomainPositions(domain_positions, hulls){
 	/*
 	Uses the domain positions given to set the domain elements' positions
 	@param domain_positions: a list of all the domains' positions in aframe coordinates
 	@type domain_positions: list
+	@param hulls: whether to use hull colliders or not
+	@type hulls: boolean
 	*/
 
 	scene = document.getElementById('scene');
@@ -39,6 +41,10 @@ function setDomainPositions(domain_positions){
 	  piece = document.getElementById('dom' + i);
 	  piece.setAttribute('position', position_str);
 	  scene.domain_positions['dom' + i] = position;
+	  if(hulls == 0){
+	  	piece = document.getElementById('hull' + i);
+	  	piece.setAttribute('position', position_str);
+	  }
 	}
 }
 
@@ -130,6 +136,7 @@ function runRelative(data, change_linker){
 	  data: data
 	}).done(function(data){
 	  scene = document.getElementById('scene');
+	  hulls = scene.use_hulls;
 
 	  presses = data[0];
 	  domain_positions = data[1];
@@ -137,7 +144,7 @@ function runRelative(data, change_linker){
 
 	  // changes positions using the position data given in the response
 	  if(change_linker == false){
-	  	setDomainPositions(domain_positions);
+	  	setDomainPositions(domain_positions, hulls);
 	  	setLinkerPositions(linker_positions, false);
 	  } else {
 	  	// reset lines

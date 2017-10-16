@@ -9,6 +9,8 @@ class ProteinViewerConfig(AppConfig):
     name = 'ProteinViewer'
     verbose_name = 'ProteinViewer'
 
+    use_meshlab = False
+
     def __init__(self, *args, **kwargs):
         """Create a new configuration."""
         super(ProteinViewerConfig, self).__init__(*args, **kwargs)

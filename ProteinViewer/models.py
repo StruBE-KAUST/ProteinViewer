@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
+from .apps import ProteinViewerConfig
 import Biskit as B
 import re
 
@@ -14,6 +15,7 @@ NO_SHIFT = 0
 
 DOMAIN = "dom"
 LINKER = "link"
+HULL = "hull"
 
 EMPTY = []
 
@@ -202,6 +204,7 @@ class ViewingSession(models.Model):
 		# and put "follow" component instead. Place physics properties on the hull collider
 
 		form_id = self.form_id
+		use_hulls = ProteinViewerConfig.use_meshlab
 
 		if type_of_piece == DOMAIN:
 			number_of_pieces = self.number_of_domains
@@ -209,10 +212,13 @@ class ViewingSession(models.Model):
 			number_of_pieces = self.number_of_linkers
 
 		for i in xrange(number_of_pieces):
-			if type_of_piece == "dom":
+			if type_of_piece == DOMAIN:
 				obj_name = type_of_piece + str(i) + '.obj'
 				mtl_name = type_of_piece + str(i) + '.mtl'
-			elif type_of_piece == "link":
+				if use_hulls:
+					hull_obj_name = HULL + str(i) + '.obj'
+					hull_mtl_name = ""
+			elif type_of_piece == LINKER:
 				obj_name = type_of_piece + str(i) + '.0.obj'
 				mtl_name = type_of_piece + str(i) + '.0.mtl'
 			else:
@@ -223,16 +229,45 @@ class ViewingSession(models.Model):
 			mtl_id = type_of_piece + "_mat" + str(i)
 			mtl_src = "/media/{}/".format(form_id) + mtl_name 
 
-			a = Asset(obj_id=obj_id, obj_src=obj_src, mat_id=mtl_id, mat_src=mtl_src, viewing_session=self)
-			a.save()
+			if type_of_piece == DOMAIN:
+				if use_hulls:
+					hull_obj_id = HULL + "_model" + str(i)
+					hull_obj_src = "/media/{}/".format(form_id) + hull_obj_name
+
+					a = Asset(obj_id=hull_obj_id, obj_src=hull_obj_src, viewing_session=self)
+					a.save()
+
+				a = Asset(obj_id=obj_id, obj_src=obj_src, mat_id=mtl_id, mat_src=mtl_src, viewing_session=self)
+				a.save()
+			else:
+				a = Asset(obj_id=obj_id, obj_src=obj_src, mat_id=mtl_id, mat_src=mtl_src, viewing_session=self)
+				a.save()
 
 
-			if type_of_piece == "dom":
+
+			if type_of_piece == DOMAIN:
 				entity_id = type_of_piece + str(i)
 				entity_obj = "#dom_model" + str(i)
 				entity_mat = "#dom_mat" + str(i)
 				entity_class = "domain"
-				entity_mixin = "dymol"
+				if use_hulls:
+					entity_mixin = "mol"
+					entity_target = HULL + str(i)
+
+					hull_entity_id = HULL + str(i)
+					hull_entity_obj = "#hull_model" + str(i)
+					hull_entity_class = "hull"
+					hull_entity_mixin = "dyhull"
+
+					e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, entity_target=entity_target, viewing_session=self)
+					e.save()
+					e = Entity(entity_id=hull_entity_id, entity_obj=hull_entity_obj, entity_class=hull_entity_class, entity_mixin=hull_entity_mixin, viewing_session=self)
+					e.save()
+				else:
+					entity_mixin = "dymol"
+
+					e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, viewing_session=self)
+					e.save()
 			else:
 				entity_id = type_of_piece + str(i)
 				entity_obj = "#link_model" + str(i)
@@ -240,8 +275,10 @@ class ViewingSession(models.Model):
 				entity_class = "linker"
 				entity_mixin = "dylink"
 
-			e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, viewing_session=self)
-			e.save()
+				e = Entity(entity_id=entity_id, entity_obj=entity_obj, entity_mat=entity_mat, entity_class=entity_class, entity_mixin=entity_mixin, viewing_session=self)
+				e.save()
+
+
 
 
 
@@ -271,6 +308,7 @@ class Entity(models.Model):
 	entity_mat = models.CharField(max_length=100, default='')
 	entity_class = models.CharField(max_length=100, default='')
 	entity_mixin = models.CharField(max_length=100, default='')
+	entity_target = models.CharField(max_length=100, default='')
 
 	viewing_session = models.ForeignKey(ViewingSession)
 
