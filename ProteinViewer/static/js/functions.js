@@ -41,7 +41,7 @@ function setDomainPositions(domain_positions, hulls){
 	  piece = document.getElementById('dom' + i);
 	  piece.setAttribute('position', position_str);
 	  scene.domain_positions['dom' + i] = position;
-	  if(hulls == 0){
+	  if(hulls == 1){
 	  	piece = document.getElementById('hull' + i);
 	  	piece.setAttribute('position', position_str);
 	  }

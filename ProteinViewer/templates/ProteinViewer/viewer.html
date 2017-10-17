@@ -98,7 +98,8 @@
   <body>
 
 
-  <a-scene id="scene" physics="debug: true; gravity: 0" stats debug startup>
+  <!-- Use debug: true to see bounding box for collisions -->
+  <a-scene id="scene" physics="debug: false; gravity: 0" stats debug startup>
     <a-assets>
       <a-mixin id = "controller" action event-state></a-mixin>
       <a-mixin id = "controller-loaded" 
@@ -112,7 +113,7 @@
 
       <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
 
-      <a-mixin id="dymol" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green"></a-mixin>
+      <a-mixin id="dymol" stuck dynamic-body="shape: box; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, green"></a-mixin>
       <a-mixin id="link"></a-mixin>
       <a-mixin id="mol"></a-mixin>
       <a-mixin id="dyhull" stuck dynamic-body="shape: hull; linearDamping: 0.99; angularDamping: 0.99" collision-filter="group: red; collidesWith: default, red, green" material="transparent: true; opacity: 0"></a-mixin>

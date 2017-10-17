@@ -61,7 +61,7 @@ class ranchRunner():
 		@type do_all: boolean
 		@param temporary_directory: the directory where the files are located
 		@type temporary_directory: string
-		""" 
+		"""
 
 		# create input string for ranch
 		ranch_input = '\n \n sequence.fasta \n' + str(len(domain_residue_ranges)) + ' \n '
@@ -79,7 +79,7 @@ class ranchRunner():
 		# 	ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
 
 		for i in xrange(len(domain_residue_ranges)):
-			ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n yes \n \n '
+			ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n no \n \n '
 		ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
 
 		print 'Ranch input: ' + ranch_input
@@ -272,8 +272,18 @@ class ranchRunner():
 		@rtype: list [int, int]
 		"""
 
+
 		form_id = temporary_directory[len(settings.MEDIA_ROOT):len(temporary_directory)]
 		current_viewing_session = ViewingSession.objects.get(form_id=form_id)
+
+		if do_all == True:
+			# loading for the first time, clean pdbs of any non-standard residue (pulchra cannot run with them in)
+			number_of_domains = current_viewing_session.number_of_domains
+			for i in xrange(number_of_domains):
+				pdb_name = '{}/pdb'.format(temporary_directory) + str(i) + '.pdb'
+				m = B.PDBModel(pdb_name)
+				m = m.compress(m.maskProtein())
+				m.writePdb(pdb_name)
 
 		start_time = time.time()
 
