@@ -138,6 +138,9 @@ class ranchRunner():
 		# runs pulchra with pdb from ranch
 		pulchra = subprocess.Popen(pulchra_input, shell=True)
 		pulchra.wait()
+		exit_status = pulchra.returncode
+		if exit_status != 0:
+			return FAILED_STATE
 
 	def cutPdb(self, all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all):
 		'''
@@ -217,6 +220,9 @@ class ranchRunner():
 				vmd = subprocess.Popen('cd {}'.format(vmd_path), shell=True, stdin=PIPE)
 				vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 				vmd.wait()
+				exit_status = vmd.returncode
+				if exit_status != 0:
+					return FAILED_STATE
 
 		for i in xrange(number_of_linkers):
 			pdb_name = 'link' + str(i) + '.' + str(version) + '.pdb'
@@ -224,6 +230,9 @@ class ranchRunner():
 			vmd = subprocess.Popen('cd {}'.format(vmd_path), shell=True, stdin=PIPE)
 			vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 			vmd.wait()
+			exit_status = vmd.returncode
+			if exit_status != 0:
+				return FAILED_STATE
 
 	def runMeshlab(self, current_viewing_session):
 		''' 
@@ -244,13 +253,24 @@ class ranchRunner():
 			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
 			# need to wait for the previous call to finish because we want to use the lower resolution for the hull
 			meshlab.wait()
+			exit_status = meshlab.returncode
+			if exit_status != 0:
+				return FAILED_STATE
 			# Run meshlab to create convex hulls
 			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True)
+			meshlab.wait()
+			exit_status = meshlab.returncode
+			if exit_status != 0:
+				return FAILED_STATE
 
 		for i in xrange(number_of_linkers):
 			obj_name = 'link' + str(i) + '.obj'
 			# run meshlab to lower resolution
 			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+			meshlab.wait()
+			exit_status = meshlab.returncode
+			if exit_status != 0:
+				return FAILED_STATE
 
 	def getLinker(self, domain_residue_ranges, all_residue_ranges, do_all, version, representation, temporary_directory):	
 		"""
@@ -305,7 +325,13 @@ class ranchRunner():
 		ranch_time = end_time - start_time
 		print 'Ranch takes ' + str(ranch_time) + ' to run'
 
-		self.runPulchra(temporary_directory)
+		pulchra = self.runPulchra(temporary_directory)
+		if pulchra == FAILED_STATE:
+			message = "Oops! Something went wrong."
+			print "Pulchra failed"
+			current_viewing_session.error_message = message
+			current_viewing_session.save()
+
 		counts = self.cutPdb(all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all)
 
 		number_of_domains = counts[0]
@@ -314,12 +340,22 @@ class ranchRunner():
 		print 'Domains: ' + str(number_of_domains)
 		print 'Linkers: ' + str(number_of_linkers)
 
-		self.runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
+		vmd = self.runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
+		if vmd == FAILED_STATE:
+			message = "Oops! Something went wrong."
+			print "Vmd failed"
+			current_viewing_session.error_message = message
+			current_viewing_session.save()
 
 		use_meshlab = ProteinViewerConfig.use_meshlab
 
 		if use_meshlab == True:
-			self.runMeshlab(current_viewing_session)
+			meshlab = self.runMeshlab(current_viewing_session)
+			# TODO: find a way to get meshlab return code too! (using subprocess.call...)
+			message = "Oops! Something went wrong."
+			print "Meshlab failed"
+			current_viewing_session.error_message = message
+			current_viewing_session.save()
 
 		return [number_of_domains, number_of_linkers]
 
