@@ -105,6 +105,10 @@ class SubmitPdbFileView(View):
         # upload the whole fasta file including that top line with the >
         sequence = request.POST['sequence']
 
+        if len(sequence == 0):
+            messages.error(request, "Please provide a sequence.")
+            response = self.render_form(request, form)
+
         with open(os.path.join(temporary_directory, 'sequence.fasta'), 'wb+') as destination:
             for chunk in request.POST['sequence']:
                 destination.write(chunk)
@@ -117,7 +121,7 @@ class SubmitPdbFileView(View):
         post.temporary_directory = temporary_directory.encode('ascii')
         post.number_of_domains = number_of_domains
         post.representation = representation.encode('ascii')
-        post.sequence = sequence.encode('ascii')
+        post.sequence = sequence.encode('ascii').strip()
         post.save()
 
         subprocess.Popen('python manage.py loadview ' + form_id + ' ' + session_id, shell=True)

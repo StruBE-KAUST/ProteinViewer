@@ -131,7 +131,7 @@ class ViewingSession(models.Model):
 		last_domain_residue = domain_residue_ranges[number_of_domains - 1][1]
 
 		if len(sequence) != last_domain_residue:
-			linker_residues = [last_domain_residue - 1, len(sequence) - 1]
+			linker_residues = [last_domain_residue - 1, len(sequence)]
 			linker_residue_ranges.append(linker_residues)
 			prev = len(sequence)
 
