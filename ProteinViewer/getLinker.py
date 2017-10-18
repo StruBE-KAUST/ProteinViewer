@@ -78,9 +78,14 @@ class ranchRunner():
 		# 		ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n yes \n \n '
 		# 	ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
 
-		for i in xrange(len(domain_residue_ranges)):
-			ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n no \n \n '
-		ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
+		if do_all:
+			for i in xrange(len(domain_residue_ranges)):
+				ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n no \n \n '
+			ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
+		else:
+			for i in xrange(len(domain_residue_ranges)):
+				ranch_input = ranch_input + 'pdb' + str(i) + '.pdb \n yes \n \n '
+			ranch_input = ranch_input + '10 \n \n yes \n \n \n no \n' 
 
 		print 'Ranch input: ' + ranch_input
 
