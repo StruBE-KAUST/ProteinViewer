@@ -27,7 +27,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.apps import apps
 
-from ProteinViewer.models import ViewingSession
+from proteinviewer.models import ViewingSession
 
 
 class Command(BaseCommand):
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         log.debug("Enter")
 
         # Get delay
-        delay = apps.get_app_config('ProteinViewer').session_delay
+        delay = apps.get_app_config('proteinviewer').session_delay
         min_date = datetime.today() - timedelta(days = delay + 2)
         max_date = datetime.today() - timedelta(days = delay)
 

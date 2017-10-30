@@ -6,7 +6,7 @@ class ProteinViewerConfig(AppConfig):
 
     # pylint: disable=too-many-instance-attributes
 
-    name = 'ProteinViewer'
+    name = 'proteinviewer'
     verbose_name = 'ProteinViewer'
 
     use_meshlab = False

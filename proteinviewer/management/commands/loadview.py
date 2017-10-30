@@ -3,8 +3,8 @@ Runs the load script. This management command was created to allow load.py to ru
 '''
 
 from django.core.management.base import BaseCommand, CommandError
-from ProteinViewer.models import ViewingSession
-from ProteinViewer.load import load
+from proteinviewer.models import ViewingSession
+from proteinviewer.load import load
 from django.contrib import messages
 
 
