@@ -105,7 +105,7 @@ class SubmitPdbFileView(View):
         # upload the whole fasta file including that top line with the >
         sequence = request.POST['sequence']
 
-        if len(sequence == 0):
+        if len(sequence) == 0:
             messages.error(request, "Please provide a sequence.")
             response = self.render_form(request, form)
 
