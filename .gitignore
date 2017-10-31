@@ -1,4 +1,5 @@
 venv
 server_dev
 *.pyc
-ProteinViewer/untitled.py
+proteinviewer/config.ini
+*~

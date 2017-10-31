@@ -9,7 +9,6 @@ import subprocess
 import signal
 import threading
 from subprocess import Popen, PIPE, STDOUT
-from .apps import CalledAppsConfig
 from django.apps import apps
 from django.conf import settings
 from models import ViewingSession
@@ -137,7 +136,7 @@ class ranchRunner():
 		@param temporary_directory: the temporary directory where the files are
 		@type: temporary_directory: string
 		'''
-		pulchra_path = CalledAppsConfig().pulchra_path
+		pulchra_path = apps.get_app_config('proteinviewer').pulchra_path
 
 		pulchra_input = '{} {}/00001eom.pdb'.format(pulchra_path, temporary_directory)
 		# runs pulchra with pdb from ranch
@@ -215,7 +214,7 @@ class ranchRunner():
 		@param do_all: whether or not all domains and linkers should be processed
 		@type do_all: boolean
 		'''
-		vmd_path = CalledAppsConfig().vmd_path
+		vmd_path = apps.get_app_config('proteinviewer').vmd_path
 
 		if do_all == True:
 			# only if loading for the first time we need to re-create the domains
@@ -249,7 +248,7 @@ class ranchRunner():
 		number_of_domains = current_viewing_session.number_of_domains
 		number_of_linkers = current_viewing_session.number_of_linkers
 
-		meshlab_path = CalledAppsConfig().meshlab_path
+		meshlab_path = apps.get_app_config('proteinviewer').meshlab_path
 		for i in xrange(number_of_domains):
 			obj_name = 'dom' + str(i) + '.obj'
 			# TODO: (Note) Using .obj to be able to override the material and make transparent; if .obj is too laggy, use .dae (but I don't know how to make .dae transparent)

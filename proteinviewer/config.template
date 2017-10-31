@@ -1,0 +1,16 @@
+[DEFAULT]
+# How long the session data are kept after creation (in days)
+keep_time = 7
+
+# Enable/disable meshlab usage to create better collision boxes
+meshlab = False
+
+[PATHS]
+# Paths to different applications
+meshlab = /opt/meshlab
+pulchra = /opt/pulchra
+ranch = /opt/ranch
+vmd = /opt/vmd
+
+# Path to home (used by biskit to create a config folder
+home = /home/dunatotatos
