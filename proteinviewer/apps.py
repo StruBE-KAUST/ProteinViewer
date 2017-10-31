@@ -1,3 +1,4 @@
+import os
 from django.apps import AppConfig
 
 
@@ -9,8 +10,6 @@ class ProteinViewerConfig(AppConfig):
     name = 'proteinviewer'
     verbose_name = 'ProteinViewer'
 
-    use_meshlab = False
-
     def __init__(self, *args, **kwargs):
         """Create a new configuration."""
         super(ProteinViewerConfig, self).__init__(*args, **kwargs)
@@ -18,10 +17,17 @@ class ProteinViewerConfig(AppConfig):
         # Days between creation of a session and removal of the associated files
         self.session_delay = None
 
+        # Enable/disable creation of a better collision box
+        self.use_meshlab = False
+
     def ready(self):
         """Populate the configuration with default values."""
         # TODO: Read from config.ini file
         self.session_delay = 7
+        self.use_meshlab = False
+
+        # Change HOME for Biskit usage
+        os.environ["HOME"] = "/home/dunatotatos"
 
 class CalledAppsConfig():
     # meshpath = 'C:/Program Files/VCG/MeshLab'

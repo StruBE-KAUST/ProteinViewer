@@ -10,7 +10,7 @@ import signal
 import threading
 from subprocess import Popen, PIPE, STDOUT
 from .apps import CalledAppsConfig
-from .apps import ProteinViewerConfig
+from django.apps import apps
 from django.conf import settings
 from models import ViewingSession
 
@@ -171,7 +171,7 @@ class ranchRunner():
 		number_of_domains = 0
 		number_of_linkers = 0
 
-		m = B.PDBModel('{}/00001eom.rebuilt.pdb'.format(temporary_directory))
+		m = B.PDBModel('{}/00001eom.pdb'.format(temporary_directory))
 		if do_all == True:
 			m = m.centered()
 
@@ -352,7 +352,7 @@ class ranchRunner():
 			current_viewing_session.error_message = message
 			current_viewing_session.save()
 
-		use_meshlab = ProteinViewerConfig.use_meshlab
+		use_meshlab = apps.get_app_config('proteinviewer').use_meshlab
 
 		if use_meshlab == True:
 			meshlab = self.runMeshlab(current_viewing_session)

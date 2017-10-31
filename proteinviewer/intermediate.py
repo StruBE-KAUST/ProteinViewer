@@ -17,7 +17,7 @@ from django.http import HttpResponseForbidden
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from .apps import ProteinViewerConfig
+from django.apps import apps
 
 
 from models import SUCCESS_STATE
@@ -67,7 +67,7 @@ def page(request, form_id):
 		boxes = Box.objects.filter(viewing_session=current_viewing_session)
 		lines = Line.objects.filter(viewing_session=current_viewing_session)
 
-		if ProteinViewerConfig.use_meshlab == True:
+		if apps.get_app_config('proteinviewer').use_meshlab == True:
 			hulls = 1
 		else:
 			hulls = 0

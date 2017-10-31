@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib import messages
-from .apps import ProteinViewerConfig
+from django.apps import apps
 import Biskit as B
 import re
 
@@ -204,7 +204,7 @@ class ViewingSession(models.Model):
 		# and put "follow" component instead. Place physics properties on the hull collider
 
 		form_id = self.form_id
-		use_hulls = ProteinViewerConfig.use_meshlab
+		use_hulls = apps.get_app_config('proteinviewer').use_meshlab
 
 		if type_of_piece == DOMAIN:
 			number_of_pieces = self.number_of_domains
