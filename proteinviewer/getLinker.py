@@ -145,7 +145,7 @@ class ranchRunner():
 		pulchra.wait()
 		exit_status = pulchra.returncode
 		if exit_status != 0:
-			return FAILED_STATE
+                        raise RuntimeError("pulchra exited with non-zero status")
 
 	def cutPdb(self, all_residue_ranges, domain_residue_ranges, temporary_directory, version, do_all):
 		'''
@@ -227,7 +227,7 @@ class ranchRunner():
 				vmd.wait()
 				exit_status = vmd.returncode
 				if exit_status != 0:
-					return FAILED_STATE
+					raise RuntimeError("VMD exited with a non-zero status")
 
 		for i in xrange(number_of_linkers):
 			pdb_name = 'link' + str(i) + '.' + str(version) + '.pdb'
@@ -237,7 +237,7 @@ class ranchRunner():
 			vmd.wait()
 			exit_status = vmd.returncode
 			if exit_status != 0:
-				return FAILED_STATE
+				raise RuntimeError("VMD exited with a non-zero status")
 
 	def runMeshlab(self, current_viewing_session):
 		''' 
@@ -260,13 +260,13 @@ class ranchRunner():
 			meshlab.wait()
 			exit_status = meshlab.returncode
 			if exit_status != 0:
-				return FAILED_STATE
+                                raise RuntimeError("Meshlab exited with a non-zero status")
 			# Run meshlab to create convex hulls
 			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True)
 			meshlab.wait()
 			exit_status = meshlab.returncode
 			if exit_status != 0:
-				return FAILED_STATE
+                                raise RuntimeError("Meshlab exited with a non-zero status")
 
 		for i in xrange(number_of_linkers):
 			obj_name = 'link' + str(i) + '.obj'
@@ -275,7 +275,7 @@ class ranchRunner():
 			meshlab.wait()
 			exit_status = meshlab.returncode
 			if exit_status != 0:
-				return FAILED_STATE
+                                raise RuntimeError("Meshlab exited with a non-zero status")
 
 	def getLinker(self, domain_residue_ranges, all_residue_ranges, do_all, version, representation, temporary_directory):	
 		"""
