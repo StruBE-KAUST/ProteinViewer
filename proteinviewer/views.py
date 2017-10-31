@@ -55,7 +55,7 @@ class SubmitPdbFileView(View):
                 response = self.generate_viewer_page(request, form)
             except Exception as e:
                 log.error("Error when trying to generate viewer page")
-                log.error(e)
+                log.error(e, exc_info=True)
                 response = self.render_form(request, form)
                 messages.error(request, "An unexpected error occurred.")
         else:
