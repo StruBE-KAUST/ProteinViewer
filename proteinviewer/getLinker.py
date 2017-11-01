@@ -267,18 +267,13 @@ class ranchRunner():
 			# TODO: (Note) Using .obj to be able to override the material and make transparent; if .obj is too laggy, use .dae (but I don't know how to make .dae transparent)
 			hull_name = 'hull' + str(i) + '.obj'
 			# Run meshlab to lower resolution
-			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format( settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
-			# need to wait for the previous call to finish because we want to use the lower resolution for the hull
-			meshlab.wait()
-			exit_status = meshlab.returncode
+			exit_status = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format( settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
 			if exit_status != 0:
                                 if exit_status == 127:
                                         raise RuntimeError("Meshlab not found")
                                 raise RuntimeError("Meshlab exited with a non-zero status")
 			# Run meshlab to create convex hulls
-			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True, env=env)
-			meshlab.wait()
-			exit_status = meshlab.returncode
+			exit_status = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True, env=env)
 			if exit_status != 0:
                                 if exit_status == 127:
                                         raise RuntimeError("Meshlab not found")
@@ -287,9 +282,7 @@ class ranchRunner():
 		for i in xrange(number_of_linkers):
 			obj_name = 'link' + str(i) + '.obj'
 			# run meshlab to lower resolution
-			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
-			meshlab.wait()
-			exit_status = meshlab.returncode
+			exit_status = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
 			if exit_status != 0:
                                 if exit_status == 127:
                                         raise RuntimeError("Meshlab not found")
