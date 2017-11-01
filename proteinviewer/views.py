@@ -6,10 +6,11 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 
 from .forms import SubmitViewerDataForm
+from .load import load
 
 import logging
 import os
-import subprocess
+import threading
 import tempfile
 
 class SubmitPdbFileView(View):
@@ -124,6 +125,10 @@ class SubmitPdbFileView(View):
         post.sequence = sequence.encode('ascii').strip()
         post.save()
 
-        subprocess.Popen('python manage.py loadview ' + form_id + ' ' + session_id, shell=True)
+        threading.Thread(
+            target=load,
+            args=(form_id, session_id),
+            kwargs={}
+            ).start()
 
         return HttpResponseRedirect(reverse("ProteinViewer:intermediate", kwargs={'form_id': form_id}))
