@@ -36,7 +36,7 @@ class ProteinViewerConfig(AppConfig):
             raise IOError("config file does not exist")
 
         self.session_delay = int(config.get("DEFAULT", "keep_time"))
-        self.use_meshlab = bool(config.get("DEFAULT", "meshlab"))
+        self.use_meshlab = (config.get("DEFAULT", "meshlab") == "True")
 
         # Change HOME for Biskit usage
         os.environ["HOME"] = config.get("PATHS", "home")
