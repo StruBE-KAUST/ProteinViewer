@@ -6,12 +6,6 @@ keep_time = 7
 meshlab = False
 
 [PATHS]
-# Paths to different applications
-meshlab = /opt/meshlab
-pulchra = /opt/pulchra
-ranch = /opt/ranch
-vmd = /opt/vmd
-
 # Path to home (used by biskit to create a config folder
 home = /home/dunatotatos
 
