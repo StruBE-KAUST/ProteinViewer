@@ -356,12 +356,14 @@ class ranchRunner():
 		print 'Domains: ' + str(number_of_domains)
 		print 'Linkers: ' + str(number_of_linkers)
 
-		vmd = self.runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
-		if vmd == FAILED_STATE:
+                try:
+		        vmd = self.runVmd(number_of_domains, number_of_linkers, version, temporary_directory, representation, do_all)
+                except RuntimeError as e:
 			message = "Oops! Something went wrong."
-			print "Vmd failed"
+			print e
 			current_viewing_session.error_message = message
 			current_viewing_session.save()
+                        return FAILED_STATE
 
 		use_meshlab = apps.get_app_config('proteinviewer').use_meshlab
 
