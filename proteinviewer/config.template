@@ -14,3 +14,6 @@ vmd = /opt/vmd
 
 # Path to home (used by biskit to create a config folder
 home = /home/dunatotatos
+
+# Additional paths (for meshlab, pulchra, ranch, and vmd)
+path = /opt

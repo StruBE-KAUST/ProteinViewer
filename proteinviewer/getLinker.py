@@ -136,11 +136,13 @@ class ranchRunner():
 		@param temporary_directory: the temporary directory where the files are
 		@type: temporary_directory: string
 		'''
-		pulchra_path = apps.get_app_config('proteinviewer').pulchra_path
-
-		pulchra_input = '{} {}/00001eom.pdb'.format(pulchra_path, temporary_directory)
+                env = os.environ.copy()
+                env["PATH"] = apps.get_app_config('proteinviewer').paths \
+                              + ":" + env["PATH"]
+		pulchra_input = 'pulchra {}/00001eom.pdb'.format(temporary_directory)
+                
 		# runs pulchra with pdb from ranch
-		pulchra = subprocess.Popen(pulchra_input, shell=True)
+		pulchra = subprocess.Popen(pulchra_input, env=env, shell=True)
 		pulchra.wait()
 		exit_status = pulchra.returncode
 		if exit_status != 0:
@@ -216,14 +218,16 @@ class ranchRunner():
 		@param do_all: whether or not all domains and linkers should be processed
 		@type do_all: boolean
 		'''
-		vmd_path = apps.get_app_config('proteinviewer').vmd_path
+                env = os.environ.copy()
+                env["PATH"] = apps.get_app_config('proteinviewer').paths \
+                              + ":" + env["PATH"]
 
 		if do_all == True:
 			# only if loading for the first time we need to re-create the domains
 			for i in xrange(number_of_domains):
 				pdb_name = 'dom' + str(i) + '.pdb'
 				obj_name = 'dom' + str(i) + '.obj'
-				vmd = subprocess.Popen('cd {}'.format(vmd_path), shell=True, stdin=PIPE)
+				vmd = subprocess.Popen('vmd', shell=True, stdin=PIPE, env=env)
 				vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 				vmd.wait()
 				exit_status = vmd.returncode
@@ -235,7 +239,7 @@ class ranchRunner():
 		for i in xrange(number_of_linkers):
 			pdb_name = 'link' + str(i) + '.' + str(version) + '.pdb'
 			obj_name = 'link' + str(i) + '.' + str(version) + '.obj'
-			vmd = subprocess.Popen('cd {}'.format(vmd_path), shell=True, stdin=PIPE)
+			vmd = subprocess.Popen('vmd', shell=True, stdin=PIPE, env=env)
 			vmd.communicate(input=b'\n axes location off \n mol new {}/{} \n mol rep {} \n mol addrep 0 \n mol delrep 0 0 \n scale to 0.05 \n render Wavefront {}/{} \n quit \n'.format(temporary_directory, pdb_name, representation, temporary_directory, obj_name))
 			vmd.wait()
 			exit_status = vmd.returncode
@@ -254,13 +258,16 @@ class ranchRunner():
 		number_of_domains = current_viewing_session.number_of_domains
 		number_of_linkers = current_viewing_session.number_of_linkers
 
-		meshlab_path = apps.get_app_config('proteinviewer').meshlab_path
+                env = os.environ.copy()
+                env["PATH"] = apps.get_app_config('proteinviewer').paths \
+                              + ":" + env["PATH"]
+                
 		for i in xrange(number_of_domains):
 			obj_name = 'dom' + str(i) + '.obj'
 			# TODO: (Note) Using .obj to be able to override the material and make transparent; if .obj is too laggy, use .dae (but I don't know how to make .dae transparent)
 			hull_name = 'hull' + str(i) + '.obj'
 			# Run meshlab to lower resolution
-			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format( settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
 			# need to wait for the previous call to finish because we want to use the lower resolution for the hull
 			meshlab.wait()
 			exit_status = meshlab.returncode
@@ -269,7 +276,7 @@ class ranchRunner():
                                         raise RuntimeError("Meshlab not found")
                                 raise RuntimeError("Meshlab exited with a non-zero status")
 			# Run meshlab to create convex hulls
-			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True)
+			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s ConvexHull.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, hull_name), shell=True, env=env)
 			meshlab.wait()
 			exit_status = meshlab.returncode
 			if exit_status != 0:
@@ -280,7 +287,7 @@ class ranchRunner():
 		for i in xrange(number_of_linkers):
 			obj_name = 'link' + str(i) + '.obj'
 			# run meshlab to lower resolution
-			meshlab = subprocess.call('cd {} && ./meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(meshlab_path, settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True)
+			meshlab = subprocess.call('meshlabserver -i {}models/{} -o {}models/{} -m vc fc vn -s LowerResolution.mlx'.format(settings.MEDIA_ROOT, obj_name, settings.MEDIA_ROOT, obj_name), shell=True, env=env)
 			meshlab.wait()
 			exit_status = meshlab.returncode
 			if exit_status != 0:

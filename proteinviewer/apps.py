@@ -20,9 +20,6 @@ class ProteinViewerConfig(AppConfig):
         # Init attributes
         self.session_delay = None
         self.use_meshlab = None
-        self.meshlab_path = None
-        self.vmd_path = None
-        self.pulchra_path = None
 
     def ready(self):
         """Populate the configuration from config.ini."""
@@ -40,10 +37,9 @@ class ProteinViewerConfig(AppConfig):
 
         self.session_delay = int(config.get("DEFAULT", "keep_time"))
         self.use_meshlab = bool(config.get("DEFAULT", "meshlab"))
-        self.meshlab_path = config.get("PATHS", "meshlab")
-        self.vmd_path = config.get("PATHS", "vmd")
-        self.pulchra_path = config.get("PATHS", "pulchra")
-        self.ranchpath = config.get("PATHS", "ranch")
 
         # Change HOME for Biskit usage
         os.environ["HOME"] = config.get("PATHS", "home")
+
+        # Add additional paths to PATH
+        self.paths = config.get("PATHS", "path")
