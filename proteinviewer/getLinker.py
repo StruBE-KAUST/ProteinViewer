@@ -174,7 +174,7 @@ class ranchRunner():
 		number_of_domains = 0
 		number_of_linkers = 0
 
-		m = B.PDBModel('{}/00001eom.pdb'.format(temporary_directory))
+		m = B.PDBModel('{}/00001eom.rebuilt.pdb'.format(temporary_directory))
 		if do_all == True:
 			m = m.centered()
 
