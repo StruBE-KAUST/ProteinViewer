@@ -1,4 +1,4 @@
-''' 
+'''
 This view acts as a filter, checking which of the final pages to show to the user;
 if the subprocess running load.py for this view is complete and all the files
 needed for the viewer.html are ready, it shows the user the viewer.html page. If
@@ -29,58 +29,58 @@ from views import SubmitPdbFileView
 
 @checkSession
 def page(request, form_id):
-	"""
-	If the files are ready, loads the viewer page, and if not, loads the loading page
-	@param request: request object from views.py
-	@type request: django request
-	@param form_id: the unique id of the form submitted
-	@type form_id: string
+    """
+    If the files are ready, loads the viewer page, and if not, loads the loading page
+    @param request: request object from views.py
+    @type request: django request
+    @param form_id: the unique id of the form submitted
+    @type form_id: string
 
-	@return: HttpResponseObject
-	"""
-	current_viewing_session = ViewingSession.objects.get(form_id=form_id)
-	process_status = current_viewing_session.process_status
+    @return: HttpResponseObject
+    """
+    current_viewing_session = ViewingSession.objects.get(form_id=form_id)
+    process_status = current_viewing_session.process_status
 
-	if process_status == RUNNING_STATE:
-		# the subprocess is still running, wait
-		return render(request, 'ProteinViewer/mid.html')
-	elif process_status == SUCCESS_STATE:
-		# subprocess completed, .obj files ready to be used
-		domain_residue_ranges = []
-		linker_residue_ranges = []
+    if process_status == RUNNING_STATE:
+        # the subprocess is still running, wait
+        return render(request, 'ProteinViewer/mid.html')
+    elif process_status == SUCCESS_STATE:
+        # subprocess completed, .obj files ready to be used
+        domain_residue_ranges = []
+        linker_residue_ranges = []
 
-		domains = Domain.objects.filter(viewing_session=current_viewing_session)
-		for domain in domains:
-			residue_range = [domain.first_residue_number, domain.last_residue_number]
-			domain_residue_ranges.append(residue_range)
+        domains = Domain.objects.filter(viewing_session=current_viewing_session)
+        for domain in domains:
+            residue_range = [domain.first_residue_number, domain.last_residue_number]
+            domain_residue_ranges.append(residue_range)
 
-		linkers = Linker.objects.filter(viewing_session=current_viewing_session)
-		for linker in linkers:
-			residue_range = [linker.first_residue_number, linker.last_residue_number]
-			linker_residue_ranges.append(residue_range)
+        linkers = Linker.objects.filter(viewing_session=current_viewing_session)
+        for linker in linkers:
+            residue_range = [linker.first_residue_number, linker.last_residue_number]
+            linker_residue_ranges.append(residue_range)
 
-		all_residue_ranges = domain_residue_ranges + linker_residue_ranges
-		all_residue_ranges = sorted(all_residue_ranges)
+        all_residue_ranges = domain_residue_ranges + linker_residue_ranges
+        all_residue_ranges = sorted(all_residue_ranges)
 
-		assets = Asset.objects.filter(viewing_session=current_viewing_session)
-		entities = Entity.objects.filter(viewing_session=current_viewing_session)
-		boxes = Box.objects.filter(viewing_session=current_viewing_session)
-		lines = Line.objects.filter(viewing_session=current_viewing_session)
+        assets = Asset.objects.filter(viewing_session=current_viewing_session)
+        entities = Entity.objects.filter(viewing_session=current_viewing_session)
+        boxes = Box.objects.filter(viewing_session=current_viewing_session)
+        lines = Line.objects.filter(viewing_session=current_viewing_session)
 
-		if apps.get_app_config('proteinviewer').use_meshlab == True:
-			hulls = 1
-		else:
-			hulls = 0
+        if apps.get_app_config('proteinviewer').use_meshlab == True:
+            hulls = 1
+        else:
+            hulls = 0
 
-		context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'hulls': hulls, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
-		return render(request, 'ProteinViewer/viewer.html', context)
-	else:
-		# something failed - take error message from the model
-		error_message = current_viewing_session.error_message 
-		if error_message != '':
-			# if ranch failed, output message that gives the reason (too far or alignment)
-			messages.error(request, error_message)
-		else:
-			# if ranch hasn't run yet, the pdb files' sequence doesn't match the sequence given
-			messages.error(request, "Pdbs don't match the sequence. Please select appropriate files.")
-		return HttpResponseRedirect(reverse('ProteinViewer:home'))
+        context = {'assets': assets, 'entities': entities, 'boxes': boxes, 'lines': lines, 'hulls': hulls, 'domain_residue_ranges': domain_residue_ranges, 'all_residue_ranges': all_residue_ranges, 'shift': current_viewing_session.shifted_for_linker, 'representation': current_viewing_session.representation, 'temporary_directory': current_viewing_session.temporary_directory, 'form_id': str(form_id)}
+        return render(request, 'ProteinViewer/viewer.html', context)
+    else:
+        # something failed - take error message from the model
+        error_message = current_viewing_session.error_message
+        if error_message != '':
+            # if ranch failed, output message that gives the reason (too far or alignment)
+            messages.error(request, error_message)
+        else:
+            # if ranch hasn't run yet, the pdb files' sequence doesn't match the sequence given
+            messages.error(request, "Pdbs don't match the sequence. Please select appropriate files.")
+        return HttpResponseRedirect(reverse('ProteinViewer:home'))
